@@ -2,7 +2,7 @@
 
 **A daily calendar your kids actually look at.**
 
-Glanceboard turns your Google Calendar into generated art on an e-ink display. No screens. No notifications. Just a quiet picture frame that helps your family know what's happening today.
+Glanceboard turns your Google Calendar into AI-generated art on an e-ink display. No screens. No notifications. Just a quiet picture frame that helps your family know what's happening today.
 
 ![Glanceboard on an e-ink display](web/public/display.jpg)
 
@@ -20,49 +20,99 @@ It uses AI image generation, so sometimes the pictures do weird things. The kids
 
 ---
 
-## How to get started
+## How it works
 
-Glanceboard is self-hosted — you deploy it to your own Firebase project (or equivalent). Here's the [self-hosting guide](SELF_HOSTING.md).
+Glanceboard runs a lightweight local server on your computer (or a Raspberry Pi). Every few hours, it:
+
+1. Reads your calendar events via iCal URL
+2. Fetches the current weather for your location
+3. Builds a creative prompt with your family's characters
+4. Generates an illustrated daily planner using Gemini
+5. Dithers the image for 6-colour e-ink and serves it to your display
+
+The display polls the server for new images — no cloud account needed.
 
 ---
 
 ## What you need
 
-Just one piece of hardware — the display:
-
 | Part | Description | Price |
 |------|-------------|-------|
-| [**Waveshare ESP32-S3 PhotoPainter**](https://link.amazon/B09xTtvBa) | 7.3" colour e-ink display in a wooden frame with built-in WiFi | ~$90 |
+| [**Waveshare ESP32-S3 PhotoPainter**](https://www.waveshare.com/esp32-s3-touch-lcd-7.htm) | 7.3" colour e-ink display in a wooden frame with built-in WiFi | ~$90 |
 | **USB-C cable** | For power (or use an optional lithium battery) | ~$5 |
+| **A computer or Pi** | To run the Glanceboard server (anything that runs Python) | — |
 
-No Raspberry Pi. No soldering. No ribbon cables. Just one device.
+No soldering. No ribbon cables. Just one display and a server.
 
-> **Using a Raspberry Pi?** The legacy Pi + separate display setup is still supported — see [Legacy Pi Setup](pi/LEGACY_PI_SETUP.md).
+> **Using a Raspberry Pi as the display?** The legacy Pi + separate e-ink HAT setup is still supported — see [Legacy Pi Setup](pi/LEGACY_PI_SETUP.md).
 
 ---
 
 ## Features
 
 - **AI-generated daily art** — Your calendar events become illustrated daily planners
-- **Two art styles** — Whimsical pen-and-ink or elegant fashion sketch
+- **6 art styles** — Pen-and-ink, fashion sketch, watercolour, pixel art, comic book, and Japanese sumi-e
 - **Custom characters** — Add people and pets with reference photos for consistency
-- **Google Calendar** — One-click OAuth connection (iCal URL fallback available)
+- **Drag-and-drop widgets** — Add sports scores, stock tickers, news, daily quotes, weather, and more to your display layout
+- **Google Calendar** — Connect via iCal URL (any calendar that exports iCal works — Google, Outlook, Apple)
 - **Weather-aware** — Shows weather on the display; characters dress for the actual conditions
 - **Location-aware** — Uses your location to generate regionally accurate scenes (no snow in Sydney!)
 - **Smart countdowns** — AI scans your calendar for birthdays, trips, and holidays to count down to
 - **Gemini-powered event rewriting** — Turns "9am Tavi Library Bag" into "Tavi — remember library bag!"
-- **📧 Email Scanner** — Scans your Gmail for school newsletters, sports updates, etc. and auto-adds events you missed to your calendar (powered by Gemini 3.5 Flash)
 - **E-ink ready** — Floyd-Steinberg dithered for 6-colour Spectra panels
-- **Multi-user** — Each person gets their own account, settings, and display
 - **Smart scheduling** — Auto-generates at your chosen times, only when your calendar or weather changes
-- **Account management** — Pause generation anytime or delete your account and all data
 - **Custom prompts** — Edit the image generation prompt template
+- **Fully local** — Runs on your own machine, no cloud account required
+
+---
+
+## Quick start
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/raphdixon/glanceboard.git
+cd glanceboard
+
+# Install server dependencies
+cd server
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cd ..
+
+# Install and build the web dashboard
+cd web
+npm install
+npm run build
+cd ..
+```
+
+### 2. Start the server
+
+```bash
+cd server
+source venv/bin/activate
+python3 -m uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+Open [http://localhost:8000](http://localhost:8000) — the Glanceboard dashboard will guide you through setup:
+
+- **API key** — Enter your Google AI Studio key (see [API key setup](#api-key-setup) below)
+- **Calendar** — Paste your iCal URL
+- **Location** — Set your timezone and location for weather
+- **Art style** — Choose from 6 styles
+- **Characters** — Add your family members and pets
+
+### 3. Set up the display
+
+See [Display setup guide](#display-setup-guide) below to flash and connect your PhotoPainter.
 
 ---
 
 ## Suggested models
 
-Glanceboard works with a range of AI image generation models. Here's what we've tested and recommend:
+Glanceboard works with a range of AI image generation models:
 
 | Model | Provider | Est. Cost/Image | Notes |
 |-------|----------|-----------------|-------|
@@ -74,10 +124,6 @@ Glanceboard also uses **Gemini 3.1 Flash Lite** (essentially free) for text inte
 - Generating weather-accurate scene descriptions
 - Scanning calendars for important upcoming events
 
-And **Gemini 3.5 Flash** for the email scanner:
-- Extracting calendar events from email subjects and snippets
-- Smart deduplication against your existing calendar
-
 ---
 
 ## API key setup
@@ -87,9 +133,9 @@ Glanceboard needs a **Google AI Studio API key** to generate images. This is the
 1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 2. Click **Create API Key** → select your Google Cloud project (or create one)
 3. Copy the key (starts with `AIza...`)
-4. Paste it into the Glanceboard dashboard during onboarding (Step 2: "AI Image Generation"), or later in **Settings → AI Image Generation → API Key**
+4. Paste it into the Glanceboard dashboard during onboarding
 
-> **That's it.** The key is stored securely in your Firestore database and used server-side to call the Gemini API. You are billed directly by Google for API usage.
+> **That's it.** The key is stored locally in your `server/data/config.json` file and used server-side to call the Gemini API. You are billed directly by Google for API usage.
 
 ---
 
@@ -118,18 +164,12 @@ The PhotoPainter ships with stock firmware. You need to flash the Glanceboard fi
 4. A captive portal opens — enter your home WiFi network and password
 5. The device connects and shows a "Ready!" screen
 
-### Step 3: Set up your board (scan QR code)
+### Step 3: Point the display at your server
 
-1. Scan the **right QR code** on the "Ready!" screen (or the link shown)
-2. This opens your Glanceboard dashboard (your Firebase Hosting URL) with your device pre-registered
-3. Sign in with Google or create an account
-4. Follow the onboarding wizard:
-   - **AI Image Generation** — Enter your Google AI Studio API key (get one free at [aistudio.google.com/apikey](https://aistudio.google.com/apikey))
-   - **Google Calendar** — Connect your family calendar
-   - **Location** — Set your timezone and location for weather
-   - **Art Style** — Choose whimsical or fashion sketch
-   - **Characters** — Add your kids, pets, anyone
-5. Click **Generate Now** — your first image appears on the display within ~30 seconds
+1. Open the device's web interface (shown on the "Ready!" screen)
+2. Set the **image URL** to your Glanceboard server's display endpoint — e.g. `http://192.168.1.x:8000/images/latest_display.png`
+3. Set the polling interval (e.g. 300 seconds)
+4. Generate your first image from the dashboard — the display will fetch and show it!
 
 ### Factory Reset
 
@@ -142,32 +182,35 @@ If you need to start fresh (e.g. change WiFi, transfer to a new owner):
 ## Architecture
 
 ```
-Server (Firebase or self-hosted)
+Local Server (FastAPI on Python 3.11+)
 ──────────────────────────────────────────────────────
-  Auth (Google + Email)     Secret Manager
-                            GOOGLE_CLIENT_ID/SECRET
+  server/app.py
+  ├── /api/config        GET/POST — settings
+  ├── /api/generate      POST — trigger image generation
+  ├── /api/status        GET — generation status
+  ├── /api/preview       GET — preview the prompt
+  ├── /images/*          static — generated display images
+  └── /*                 static — built Vite SPA dashboard
 
-  Firestore                    Storage
-  users/{uid}/settings/...     users/{uid}/devices/{id}/display/
-  users/{uid}/characters/...   users/{uid}/devices/{id}/archive/
-  users/{uid}/devices/...      devices/{id}/display/ ← ESP32 polls here
+  data/config.json       local config (API key, calendar, etc.)
+  data/images/           generated display images
 
-   Cloud Functions (Python 3.11)
-   ├── generate_display      (on-demand, 3/day limit)
-   ├── scheduled_generate    (cron, generates at user-chosen times)
-   ├── create_device         (auto-register from QR code)
-   ├── exchange_calendar_code  (OAuth for Calendar)
-  └── delete_account          (full account deletion)
+  Scheduler (APScheduler)
+  └── runs every 15 min, generates at user-chosen hours
+      only when calendar/weather has changed
 
-  Hosting: Vite SPA (dashboard + onboarding)
+  Web Dashboard (Vite SPA)
+  ├── Onboarding wizard
+  ├── Settings panel
+  ├── Drag-and-drop widget layout editor
+  ├── Character manager
+  └── Live display preview
 ──────────────────────────────────────────────────────
          │                              │
          ▼                              ▼
   ESP32-S3 PhotoPainter         AI Provider
-  QR code → WiFi setup          Google AI Studio
-  polls devices/{MAC}/display   (Gemini Flash / Pro)
-  updates e-ink
-  Factory reset: BOOT 10s
+  polls /images/latest_*        Google AI Studio
+  updates e-ink display         (Gemini Flash / Pro)
 
   Gemini 3.1 Flash Lite
   • Rewrites calendar events in friendly text
@@ -177,50 +220,38 @@ Server (Firebase or self-hosted)
 
 ---
 
-## Self-hosting
-
-See the full [Self-Hosting Guide](SELF_HOSTING.md) for step-by-step instructions.
-
-Glanceboard was built on Firebase, but the codebase is straightforward Python + a Vite SPA — you could quite easily adapt it to run locally or on any cloud platform. The Cloud Functions are just Flask endpoints, and the frontend is static HTML/JS.
-
-**Overview:**
-1. Create a Firebase project (Blaze plan — generous free tier covers most usage)
-2. Enable Auth, Firestore, Storage, Cloud Functions
-3. Set up Google Calendar OAuth credentials
-4. Get a [Google AI Studio API key](https://aistudio.google.com/apikey) for image generation
-5. Copy `web/src/config.example.js` to `web/src/config.js` with your values
-6. Deploy: `firebase deploy`
-7. Flash and set up your PhotoPainter display (see [Display setup guide](#display-setup-guide))
-
-**Estimated cost:** ~$1–3/month (just the AI image generation API). Firebase free tier covers everything else.
-
----
-
 ## Project structure
 
 ```
 glanceboard/
-├── web/                    # Frontend (Vite SPA)
-│   ├── index.html          # Dashboard + landing page
+├── server/                     # Local Python server (FastAPI)
+│   ├── app.py                  # All backend logic + API endpoints
+│   ├── requirements.txt        # Python dependencies
+│   └── data/                   # Runtime data (gitignored)
+│       ├── config.json          # Your settings (gitignored)
+│       ├── config.example.json  # Template config
+│       └── images/              # Generated display images (gitignored)
+├── web/                        # Frontend (Vite SPA)
+│   ├── index.html              # Dashboard + landing page
 │   └── src/
-│       ├── main.js         # App logic
-│       ├── style.css       # Styles
-│       ├── config.js       # Your config (gitignored)
-│       └── config.example.js # Template config
-├── functions/              # Cloud Functions (Python)
-│   ├── main.py             # All backend logic
-│   └── requirements.txt    # Python dependencies
-├── firmware/               # ESP32-S3 PhotoPainter docs
-│   └── README.md           # SD card & firmware setup
-├── pi/                     # Legacy Raspberry Pi scripts
-│   ├── LEGACY_PI_SETUP.md  # Pi setup guide
-│   ├── install.sh          # One-line installer
-│   └── display_update.py   # Display update script
-├── firestore.rules         # Firestore security rules
-├── storage.rules           # Storage security rules
-├── firebase.json           # Firebase config
-├── SELF_HOSTING.md         # Self-hosting guide
-└── LICENSE                 # CC BY-NC 4.0
+│       ├── main.js             # App logic
+│       ├── style.css           # Styles
+│       ├── config.js           # Firebase config (gitignored, only for hosted version)
+│       └── config.example.js   # Template config
+├── functions/                  # Cloud Functions (for hosted version)
+│   ├── main.py                 # Backend logic (Firebase variant)
+│   └── requirements.txt        # Python dependencies
+├── firmware/                   # ESP32-S3 PhotoPainter docs
+│   └── README.md               # SD card & firmware setup
+├── pi/                         # Legacy Raspberry Pi scripts
+│   ├── LEGACY_PI_SETUP.md      # Pi setup guide
+│   ├── install.sh              # One-line installer
+│   └── display_update.py       # Display update script
+├── firestore.rules             # Firestore security rules (hosted version)
+├── storage.rules               # Storage security rules (hosted version)
+├── firebase.json               # Firebase config (hosted version)
+├── SELF_HOSTING.md             # Firebase self-hosting guide
+└── LICENSE                     # CC BY-NC 4.0
 ```
 
 ---
