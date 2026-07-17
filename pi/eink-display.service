@@ -1,6 +1,6 @@
 [Unit]
 Description=Glanceboard E-Ink Display Updater
-Documentation=https://github.com/botti/glanceboard
+Documentation=https://github.com/raphdixon/glanceboard
 After=network-online.target
 Wants=network-online.target
 

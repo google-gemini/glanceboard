@@ -33,15 +33,5 @@
       "source": "functions",
       "codebase": "default",
       "runtime": "python311"
-    }
-  ],
-  "auth": {
-    "providers": {
-      "emailPassword": true,
-      "googleSignIn": {
-        "oAuthBrandDisplayName": "Glanceboard",
-        "supportEmail": "raphaeldixon@gmail.com"
-      }
-    }
   }
 }
