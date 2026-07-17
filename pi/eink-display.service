@@ -1,0 +1,24 @@
+[Unit]
+Description=Glanceboard E-Ink Display Updater
+Documentation=https://github.com/botti/glanceboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/glanceboard
+EnvironmentFile=/home/pi/.glanceboard.conf
+ExecStart=/usr/bin/python3 /home/pi/glanceboard/display_update.py --once
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=glanceboard
+
+# Security
+NoNewPrivileges=false
+ProtectSystem=false
+
+[Install]
+WantedBy=multi-user.target

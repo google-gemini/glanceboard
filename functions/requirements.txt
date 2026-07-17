@@ -1,0 +1,12 @@
+firebase-functions>=0.1.0
+firebase-admin>=6.0.0
+requests>=2.31.0
+icalendar>=5.0.0
+recurring-ical-events>=2.1.0
+Pillow>=10.0.0
+numpy>=1.24.0
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-cloud-secret-manager>=2.16.0
+

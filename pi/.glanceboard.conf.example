@@ -1,0 +1,12 @@
+# Glanceboard Configuration
+# Copy this file to ~/.glanceboard.conf and fill in your Display URL.
+
+# Your Pi Display Image URL (from the Glanceboard dashboard)
+# Find this in: Dashboard → Settings → E-Ink Display Setup → Copy URL
+EINK_SERVER_URL="https://firebasestorage.googleapis.com/v0/b/YOUR_BUCKET/o/users%2FYOUR_UID%2Fdisplay%2Flatest_display.png?alt=media"
+
+# How often to check for new images (in seconds, default: 300 = 5 min)
+EINK_POLL_INTERVAL=300
+
+# Where to store the last image hash (for change detection)
+EINK_HASH_FILE=/tmp/eink_last_hash.txt
