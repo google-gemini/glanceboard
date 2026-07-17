@@ -4,7 +4,7 @@
     "ical_url": "",
     "timezone": "UTC",
     "image_model": "google/gemini-3-pro-image",
-    "text_model": "gemini-3.6-flash",
+    "text_model": "gemini-flash-latest",
     "characters_enabled": true,
     "setup_complete": false,
     "latitude": 0,

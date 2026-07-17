@@ -72,7 +72,7 @@ DEFAULT_TIMEZONE = "Australia/Sydney"
 GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
 CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
-DEFAULT_TEXT_MODEL = "gemini-3.6-flash"
+DEFAULT_TEXT_MODEL = "gemini-flash-latest"
 
 # E-Ink Spectra 6 color palette (RGB)
 EINK_PALETTE = np.array([

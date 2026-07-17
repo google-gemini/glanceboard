@@ -1494,7 +1494,7 @@ async function loadSettings() {
   $("#setting-model").value = d.image_model || c.image_model || "google/gemini-2.5-flash-image";
   filterModelsByProvider(provider);
   // Set text model
-  $("#setting-text-model").value = d.text_model || c.text_model || "gemini-3.6-flash";
+  $("#setting-text-model").value = d.text_model || c.text_model || "gemini-flash-latest";
   // Set aesthetic radio button
   const aestheticVal = d.aesthetic || c.aesthetic || "whimsical";
   const isBuiltIn = document.querySelector(`input[name="aesthetic"][value="${aestheticVal}"]`);
