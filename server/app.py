@@ -72,6 +72,8 @@ DEFAULT_TIMEZONE = "Australia/Sydney"
 GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
 CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
+DEFAULT_TEXT_MODEL = "gemini-3.6-flash"
+
 # E-Ink Spectra 6 color palette (RGB)
 EINK_PALETTE = np.array([
     [0,   0,   0],      # Black
@@ -378,8 +380,8 @@ def _reverse_geocode_location(latitude, longitude):
 
 def describe_scene_weather_via_gemini(weather, season, timezone, api_key,
                                        api_provider="google", location_name="",
-                                       events=None):
-    """Use Gemini Flash Lite to generate a realistic, location-aware scene
+                                       events=None, text_model=None):
+    """Use the configured text model to generate a realistic, location-aware scene
     description based on actual weather conditions.
 
     Instead of just saying 'winter scene' (which causes the image model to draw
@@ -432,12 +434,15 @@ Now write the scene description:"""
 
     try:
         if api_provider == "openrouter":
+            tm = text_model or DEFAULT_TEXT_MODEL
+            # OpenRouter needs google/ prefix
+            or_model = f"google/{tm}" if not tm.startswith("google/") else tm
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             }
             payload = {
-                "model": "google/gemini-3.1-flash-lite-001",
+                "model": or_model,
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": 150,
             }
@@ -448,7 +453,8 @@ Now write the scene description:"""
             resp.raise_for_status()
             text = resp.json()["choices"][0]["message"]["content"].strip()
         else:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
+            tm = text_model or DEFAULT_TEXT_MODEL
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{tm}:generateContent?key={api_key}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"maxOutputTokens": 150, "temperature": 0.7},
@@ -469,8 +475,8 @@ Now write the scene description:"""
 
 
 def scan_important_events_via_gemini(events_14_days, api_key, api_provider="google",
-                                      characters=None):
-    """Use Gemini Flash Lite to identify important upcoming events worth
+                                      characters=None, text_model=None):
+    """Use the configured text model to identify important upcoming events worth
     counting down to — birthdays, trips, holidays, celebrations.
 
     Args:
@@ -525,12 +531,14 @@ Format: [{{"event": "Dad's birthday", "date": "2026-07-10", "type": "birthday", 
 
     try:
         if api_provider == "openrouter":
+            tm = text_model or DEFAULT_TEXT_MODEL
+            or_model = f"google/{tm}" if not tm.startswith("google/") else tm
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             }
             payload = {
-                "model": "google/gemini-3.1-flash-lite-001",
+                "model": or_model,
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": 500,
             }
@@ -541,7 +549,8 @@ Format: [{{"event": "Dad's birthday", "date": "2026-07-10", "type": "birthday", 
             resp.raise_for_status()
             text = resp.json()["choices"][0]["message"]["content"].strip()
         else:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
+            tm = text_model or DEFAULT_TEXT_MODEL
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{tm}:generateContent?key={api_key}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"maxOutputTokens": 500, "temperature": 0.3},
@@ -694,8 +703,9 @@ def _compute_generation_hash(mode, banner_text, events, weather_summary="", weat
     return hashlib.sha256(hash_input.encode()).hexdigest()[:16]
 
 
-def humanize_events_via_gemini(events, api_key, api_provider="google", characters=None):
-    """Use Gemini to rewrite raw calendar events into friendly, human language.
+def humanize_events_via_gemini(events, api_key, api_provider="google", characters=None,
+                                text_model=None):
+    """Use the configured text model to rewrite raw calendar events into friendly, human language.
 
     Transforms entries like "9:00am Tavi Library Bag" into
     "📚 Tavi — remember Library bag!" with emojis and warmth.
@@ -756,12 +766,14 @@ Respond with ONLY the numbered list, one per line. Example format:
 
     try:
         if api_provider == "openrouter":
+            tm = text_model or DEFAULT_TEXT_MODEL
+            or_model = f"google/{tm}" if not tm.startswith("google/") else tm
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             }
             payload = {
-                "model": "google/gemini-3.1-flash-lite-001",
+                "model": or_model,
                 "messages": [{"role": "user", "content": gemini_prompt}],
                 "max_tokens": 500,
             }
@@ -773,7 +785,8 @@ Respond with ONLY the numbered list, one per line. Example format:
             text = resp.json()["choices"][0]["message"]["content"].strip()
         else:
             # Google AI Studio
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
+            tm = text_model or DEFAULT_TEXT_MODEL
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{tm}:generateContent?key={api_key}"
             payload = {
                 "contents": [{"parts": [{"text": gemini_prompt}]}],
                 "generationConfig": {"maxOutputTokens": 500, "temperature": 0.7},
@@ -1495,6 +1508,7 @@ def _generate_for_device(config: dict, force: bool = False):
     temp_unit = config.get("temp_unit", "celsius")
 
     model = config.get("image_model", "google/gemini-3-pro-image")
+    text_model = config.get("text_model", DEFAULT_TEXT_MODEL)
     characters_enabled = config.get("characters_enabled", True)
     calendar_id = config.get("calendar_id", "primary")
     aesthetic = config.get("aesthetic", "whimsical")
@@ -1566,6 +1580,7 @@ def _generate_for_device(config: dict, force: bool = False):
     # (e.g. "📚 9am — Tavi, remember library bag!") before the image prompt.
     events = humanize_events_via_gemini(
         events, api_key, api_provider=api_provider, characters=characters,
+        text_model=text_model,
     )
 
     # ─── Location lookup ─────────────────────────────────────────
@@ -1578,9 +1593,9 @@ def _generate_for_device(config: dict, force: bool = False):
     elif location_name:
         print(f"  📍 Location: {location_name} (cached)")
 
-    # ─── Scene description via Gemini Flash Lite ────────────────
+    # ─── Scene description via text model ───────────────────────
     # Instead of just "winter scene" (which draws snow in Sydney),
-    # use Gemini to generate a realistic, location-aware description.
+    # use the text model to generate a realistic, location-aware description.
     scene_description = ""
     if weather:
         raw_season = get_season(now.month)
@@ -1589,6 +1604,7 @@ def _generate_for_device(config: dict, force: bool = False):
             api_provider=api_provider,
             location_name=location_name,
             events=events,
+            text_model=text_model,
         )
 
     important_events = []

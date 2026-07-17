@@ -1493,6 +1493,8 @@ async function loadSettings() {
   await loadDynamicModels();
   $("#setting-model").value = d.image_model || c.image_model || "google/gemini-2.5-flash-image";
   filterModelsByProvider(provider);
+  // Set text model
+  $("#setting-text-model").value = d.text_model || c.text_model || "gemini-3.6-flash";
   // Set aesthetic radio button
   const aestheticVal = d.aesthetic || c.aesthetic || "whimsical";
   const isBuiltIn = document.querySelector(`input[name="aesthetic"][value="${aestheticVal}"]`);
@@ -1707,6 +1709,7 @@ async function doSaveSettings() {
   // Device-level settings (per display)
   const deviceConfig = {
     image_model: $("#setting-model").value,
+    text_model: $("#setting-text-model").value,
     aesthetic: (() => {
       const sel = document.querySelector('input[name="aesthetic"]:checked')?.value || "whimsical";
       if (sel === "custom") return $("#custom-aesthetic-input")?.value?.trim() || "whimsical";
@@ -1759,7 +1762,7 @@ async function doSaveSettings() {
 $("#save-settings-btn")?.addEventListener("click", () => doSaveSettings());
 
 // Auto-save on settings changes
-["#setting-api-provider", "#setting-model", "#setting-timezone",
+["#setting-api-provider", "#setting-model", "#setting-text-model", "#setting-timezone",
  "#setting-characters", "#email-scan-enabled"].forEach(sel => {
   $(sel)?.addEventListener("change", settingsAutoSave);
 });
