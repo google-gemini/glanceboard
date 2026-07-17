@@ -117,9 +117,9 @@ Glanceboard works with a range of AI image generation models:
 | Model | Provider | Est. Cost/Image | Notes |
 |-------|----------|-----------------|-------|
 | **Gemini 3 Pro** | Google AI Studio | ~$0.04 | **Recommended.** Best quality, great text rendering and character consistency. |
-| **Gemini 3.1 Flash Lite** | Google AI Studio | ~$0.01 | Fast and cheap. Good for frequent refreshes on a budget. |
+| **Gemini Flash 3.6** | Google AI Studio | ~$0.01 | Fast and cheap. Good for frequent refreshes on a budget. |
 
-Glanceboard also uses **Gemini 3.1 Flash Lite** (essentially free) for text intelligence:
+Glanceboard also uses **Gemini Flash 3.6** (essentially free) for text intelligence:
 - Rewriting calendar events into friendly language
 - Generating weather-accurate scene descriptions
 - Scanning calendars for important upcoming events
@@ -212,7 +212,7 @@ Local Server (FastAPI on Python 3.11+)
   polls /images/latest_*        Google AI Studio
   updates e-ink display         (Gemini Flash / Pro)
 
-  Gemini 3.1 Flash Lite
+  Gemini Flash 3.6
   • Rewrites calendar events in friendly text
   • Generates weather-accurate scene prompts
   • Scans calendar for important countdowns
@@ -274,4 +274,4 @@ Contributions are welcome! Please:
 
 ---
 
-Built with ❤️ by [Raph Dixon](https://raph.plus).
+Built with ❤️ by [Raph Dixon](https://raph.plus) using [Antigravity](https://deepmind.google/technologies/antigravity/) and Gemini Flash 3.6.
