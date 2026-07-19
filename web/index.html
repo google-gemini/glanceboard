@@ -178,12 +178,13 @@
 
           <div id="onboard-no-device-info" class="pi-setup-guide">
             <h3>📺 Set Up Your Display</h3>
-            <p class="step-desc" style="margin-bottom: 12px;">Flash the Glanceboard firmware onto your Waveshare PhotoPainter, then scan the QR code on the device to link it to your account.</p>
+            <p class="step-desc" style="margin-bottom: 12px;">Flash the community firmware onto your Waveshare PhotoPainter and connect it to your Glanceboard.</p>
             <ol class="setup-steps">
-              <li>Download the firmware from <a href="https://github.com/raphdixon/glanceboard-firmware/releases" target="_blank">GitHub Releases</a></li>
-              <li>Flash it to your PhotoPainter via USB-C</li>
-              <li>Power on — scan the QR code to connect WiFi</li>
-              <li>Scan the second QR code to link the display to your account</li>
+              <li>Connect your PhotoPainter via USB-C and flash using the <a href="https://aitjcize.github.io/esp32-photoframe/#flash" target="_blank">web flasher</a> in Chrome</li>
+              <li>Scan the QR code on the device to connect it to your WiFi</li>
+              <li>Go to <a href="http://photoframe.local" target="_blank">photoframe.local</a> → Settings → Auto Rotate</li>
+              <li>Enable Auto-Rotate, set Rotation Mode to <strong>Fetch image from URL</strong></li>
+              <li>Paste your Display Image URL (from Settings → 📋 Copy URL) and save</li>
             </ol>
           </div>
 
@@ -583,10 +584,12 @@
             <div class="pi-setup-guide">
               <p class="step-desc">To connect your ESP32-S3 PhotoPainter display:</p>
               <ol class="setup-steps">
-                <li>Power on the PhotoPainter via USB-C</li>
-                <li>Connect to WiFi hotspot <code>esp_network</code> (password: <code>1234567890</code>)</li>
-                <li>Open <code>http://192.168.4.1/index.html</code> → switch to STA mode → enter your WiFi</li>
-                <li>The display will poll for new images automatically ✨</li>
+                <li>Flash the firmware using the <a href="https://aitjcize.github.io/esp32-photoframe/#flash" target="_blank">web flasher</a> in Chrome</li>
+                <li>Scan the QR code on the device to connect it to your WiFi</li>
+                <li>Go to <a href="http://photoframe.local" target="_blank">photoframe.local</a> → Settings → Auto Rotate tab</li>
+                <li>Enable Auto-Rotate, set Rotation Mode to <strong>Fetch image from URL</strong></li>
+                <li>Paste your Display Image URL (above) and set a wake schedule</li>
+                <li>Save — the display will fetch new images automatically ✨</li>
               </ol>
               <p class="help-text" style="margin-top: 8px;">Using a Raspberry Pi instead? See the <a href="https://github.com/raphdixon/glanceboard/blob/main/pi/LEGACY_PI_SETUP.md" target="_blank">legacy Pi setup guide</a>.</p>
             </div>
@@ -644,66 +647,48 @@
             </div>
           </div>
 
-          <!-- Step 2: Power On & Connect WiFi -->
+          <!-- Step 2: Connect to WiFi -->
           <div class="guide-step">
             <div class="guide-step-number">2</div>
             <div class="guide-step-content">
               <h3>📶 Connect to WiFi</h3>
-              <p>The PhotoPainter creates its own WiFi hotspot for initial setup:</p>
               <ol class="guide-substeps">
-                <li>Insert the SD card (included) into the PhotoPainter</li>
-                <li>Plug in the USB-C cable to power it on</li>
-                <li>On your phone or computer, connect to the WiFi network:
-                  <ul>
-                    <li><strong>SSID:</strong> <code>esp_network</code></li>
-                    <li><strong>Password:</strong> <code>1234567890</code></li>
-                  </ul>
-                </li>
-                <li>Open your browser and go to:
-                  <div class="code-block">
-                    <code>http://192.168.4.1/index.html</code>
-                    <button class="copy-code-btn" data-code="http://192.168.4.1/index.html" title="Copy">📋</button>
-                  </div>
-                </li>
-                <li>Click <strong>"STA"</strong> to switch to Station mode</li>
-                <li>Enter your home WiFi name and password, then click <strong>Send</strong></li>
-                <li>The PhotoPainter will restart and connect to your home network</li>
+                <li>Power on the PhotoPainter — a setup screen with QR codes appears</li>
+                <li>Scan the QR code on the device with your phone</li>
+                <li>Follow the prompts to connect the PhotoPainter to your local WiFi</li>
               </ol>
-              <div class="guide-tip">
-                💡 <strong>After setup</strong>, the PhotoPainter is accessible at <code>http://esp32-s3-photopainter.local/index.html</code> on your home network.
-              </div>
             </div>
           </div>
 
-          <!-- Step 3: Generate Your First Image -->
+          <!-- Step 3: Configure Auto Rotate -->
           <div class="guide-step">
             <div class="guide-step-number">3</div>
+            <div class="guide-step-content">
+              <h3>⚙️ Configure the Display</h3>
+              <p>On a computer connected to the same WiFi network:</p>
+              <ol class="guide-substeps">
+                <li>Go to <a href="http://photoframe.local" target="_blank"><strong>photoframe.local</strong></a> in your browser (or scan the QR code — but a computer is easier)</li>
+                <li>Scroll down to <strong>Settings</strong> and click the <strong>Auto Rotate</strong> tab</li>
+                <li>Enable <strong>Auto-Rotate</strong></li>
+                <li>Under <strong>Rotation Mode</strong>, select <strong>Fetch image from URL</strong></li>
+                <li>Paste your Display Image URL from your Glanceboard dashboard (found in <strong>Settings → E-Ink Display Setup → 📋 Copy URL</strong>)</li>
+                <li>Set a <strong>wake schedule</strong> to control how often the display refreshes</li>
+                <li>Click <strong>Save</strong></li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Step 4: Generate Your First Image -->
+          <div class="guide-step">
+            <div class="guide-step-number">4</div>
             <div class="guide-step-content">
               <h3>🎨 Generate Your First Image</h3>
               <ol class="guide-substeps">
                 <li>Come back to this dashboard</li>
                 <li>Go to the <strong>Dashboard</strong> page</li>
                 <li>Click <strong>"🎨 Generate Now"</strong></li>
-                <li>Your first calendar art image will be created!</li>
+                <li>Your first calendar art image will be created and the display will fetch it automatically!</li>
               </ol>
-            </div>
-          </div>
-
-          <!-- Step 4: Send to Display -->
-          <div class="guide-step">
-            <div class="guide-step-number">4</div>
-            <div class="guide-step-content">
-              <h3>📺 Send Image to Display</h3>
-              <p>Once your image is generated, connect the PhotoPainter to your Glanceboard image URL:</p>
-              <ol class="guide-substeps">
-                <li>Go to <strong>Settings</strong> → <strong>E-Ink Display Setup</strong> in this app</li>
-                <li>Click <strong>"📋 Copy URL"</strong> to copy your Display Image URL</li>
-                <li>Open the PhotoPainter's web interface at <code>http://esp32-s3-photopainter.local/index.html</code></li>
-                <li>In the PhotoPainter web interface, scroll down and look for the <strong>"Online Album"</strong> section (it's below the image upload area)</li>
-                <li>Paste your copied URL into the <strong>URL field</strong> under Online Album</li>
-                <li>Set the <strong>refresh interval</strong> (e.g. 15 minutes) and tap <strong>"Submit"</strong></li>
-              </ol>
-
             </div>
           </div>
 
@@ -714,11 +699,11 @@
               <h3>🎉 You're Done!</h3>
               <p>Your Glanceboard will now:</p>
               <ul>
-                <li>✅ Check for calendar changes every few hours as per your schedule and generates new art when things change</li>
-                <li>✅ Update the e-ink display automatically via the Online Album URL</li>
+                <li>✅ Generate new art at your scheduled times, only when your calendar or weather changes</li>
+                <li>✅ Update the e-ink display automatically</li>
                 <li>✅ Show your events, weather forecast, characters, and upcoming birthdays</li>
               </ul>
-              <p>You can also manually regenerate from the Dashboard.</p>
+              <p>You can also manually regenerate from the Dashboard anytime.</p>
               <div class="guide-tip">
                 💡 <strong>Using a Raspberry Pi instead?</strong> The legacy Pi setup is still supported — see the <a href="https://github.com/raphdixon/glanceboard/blob/main/pi/LEGACY_PI_SETUP.md" target="_blank" rel="noopener">Pi setup guide</a> on GitHub.
               </div>

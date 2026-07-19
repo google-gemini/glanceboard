@@ -141,41 +141,29 @@ Glanceboard needs a **Google AI Studio API key** to generate images. This is the
 
 ## Display setup guide
 
-### Step 1: Flash the Glanceboard firmware
-
-The PhotoPainter ships with stock firmware. You need to flash the Glanceboard firmware to enable QR code setup and automatic image polling.
+### Step 1: Flash the firmware
 
 1. Connect your PhotoPainter to your computer via USB-C
-2. Hold the **BOOT** button, then press **RESET** while holding BOOT — release both
-3. Download the latest `merged.bin` from [Releases](https://github.com/raphdixon/glanceboard-firmware/releases)
-4. Flash using [esptool](https://docs.espressif.com/projects/esptool/en/latest/):
-   ```bash
-   python3 -m esptool --chip esp32s3 --port /dev/cu.usbmodem* --baud 921600 write_flash 0x0 merged.bin
-   ```
-5. The device will reboot and show the Glanceboard setup screen
+2. Go to the [web flasher](https://aitjcize.github.io/esp32-photoframe/#flash) in Chrome
+3. Click **Connect**, select your device, and flash the latest firmware
 
-> **Important:** Keep the SD card inserted — the firmware needs certain system files to boot properly.
+### Step 2: Connect to WiFi
 
-### Step 2: Connect to WiFi (scan QR code)
+1. Power on the PhotoPainter — a setup screen with QR codes appears
+2. Scan the QR code on the device with your phone
+3. Follow the prompts to connect the PhotoPainter to your local WiFi
 
-1. Power on the PhotoPainter — the Glanceboard setup screen appears
-2. On your phone, scan the **left QR code** ("Scan to connect WiFi")
-3. Your phone connects to the Glanceboard's WiFi hotspot
-4. A captive portal opens — enter your home WiFi network and password
-5. The device connects and shows a "Ready!" screen
+### Step 3: Configure the display
 
-### Step 3: Point the display at your server
+1. On a computer on the same WiFi, go to [photoframe.local](http://photoframe.local) (or scan the QR code — but a computer is easier)
+2. Scroll down to **Settings** and click the **Auto Rotate** tab
+3. Enable **Auto-Rotate**
+4. Under **Rotation Mode**, select **Fetch image from URL**
+5. Paste the Display Image URL from your Glanceboard dashboard (found in **Settings → E-Ink Display Setup → 📋 Copy URL**)
+6. Set a wake schedule to control how often the display refreshes
+7. Click **Save** — you're done!
 
-1. Open the device's web interface (shown on the "Ready!" screen)
-2. Set the **image URL** to your Glanceboard server's display endpoint — e.g. `http://192.168.1.x:8000/images/latest_display.png`
-3. Set the polling interval (e.g. 300 seconds)
-4. Generate your first image from the dashboard — the display will fetch and show it!
-
-### Factory Reset
-
-If you need to start fresh (e.g. change WiFi, transfer to a new owner):
-- **Hold the BOOT button for 10 seconds** — the device wipes all settings and reboots to the setup screen
-- Alternatively, access the device's web interface and use `POST /api/factory-reset`
+> **Using a Raspberry Pi as the display?** The legacy Pi + separate e-ink HAT setup is still supported — see [Legacy Pi Setup](pi/LEGACY_PI_SETUP.md).
 
 ---
 
