@@ -444,7 +444,7 @@ Now write the scene description:"""
             payload = {
                 "model": or_model,
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 150,
+                "max_tokens": 1024,
             }
             resp = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -457,7 +457,7 @@ Now write the scene description:"""
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{tm}:generateContent?key={api_key}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"maxOutputTokens": 150, "temperature": 0.7},
+                "generationConfig": {"maxOutputTokens": 1024, "temperature": 0.7},
             }
             resp = requests.post(url, json=payload, timeout=15)
             resp.raise_for_status()
@@ -472,6 +472,102 @@ Now write the scene description:"""
     except Exception as e:
         print(f"  ⚠️ Scene description failed ({e}), using fallback")
         return f"The setting is a {season} day, {temp}{unit} and {condition}."
+
+
+def fetch_widget_data_via_gemini(api_key, api_provider="google", text_model=None,
+                                 stocks_symbols=None, sports_team=None):
+    """Generate realistic text/data for widgets like history, news, stocks, and sports in one call."""
+    if not api_key:
+        return {}
+
+    stocks_str = ", ".join(stocks_symbols) if stocks_symbols else "GOOG"
+    sports_str = sports_team if sports_team else "Sydney Swans"
+    
+    prompt = f"""You are a helpful widget data assistant for a daily e-ink calendar display.
+Please generate realistic, clean, concise content for the following widgets based on today's date:
+
+1. "history": An interesting historical fact for today. Keep it short (max 20 words).
+2. "news": 2 very short, interesting, family-friendly news headlines or world updates.
+3. "stocks": Realistic current stock price and daily percentage change (+/-) for these ticker symbols: {stocks_str}.
+4. "sports": A brief recent update or score for this sports team: {sports_str}.
+
+Output your response strictly as a valid JSON object matching this structure:
+{{
+  "history": "On this day in 1969, Apollo 11 landed on the moon.",
+  "news": [
+    "Scientists discover new coral reef in the Galapagos",
+    "World's oldest tree found to be 5,000 years old"
+  ],
+  "stocks": {{
+    "GOOG": "$182.45 (+1.2% today)"
+  }},
+  "sports": "Sydney Swans won 94-72 against Richmond Tigers."
+}}
+Do NOT wrap the JSON in markdown code blocks. Output raw JSON only."""
+
+    try:
+        tm = text_model or DEFAULT_TEXT_MODEL
+        if api_provider == "openrouter":
+            or_model = f"google/{tm}" if not tm.startswith("google/") else tm
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "model": or_model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 2048,
+                "response_format": {"type": "json_object"}
+            }
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers, json=payload, timeout=15,
+            )
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"].strip()
+        else:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{tm}:generateContent?key={api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "maxOutputTokens": 2048,
+                    "temperature": 0.5
+                },
+            }
+            resp = requests.post(url, json=payload, timeout=15)
+            resp.raise_for_status()
+            result = resp.json()
+            try:
+                text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+            except Exception as pe:
+                print(f"  ❌ Parsing failed. Raw response: {result}")
+                raise pe
+            
+        # Parse JSON robustly by extracting the JSON object boundaries
+        first_brace = text.find('{')
+        last_brace = text.rfind('}')
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            json_text = text[first_brace:last_brace+1]
+        else:
+            json_text = text
+            
+        return json.loads(json_text.strip())
+    except Exception as e:
+        print(f"  ⚠️ fetch_widget_data_via_gemini failed: {e}")
+        # Return fallback mock values so the prompt generator doesn't fail
+        # Make them specific as requested!
+        import datetime
+        day_str = datetime.datetime.now().strftime("%B %d")
+        return {
+            "history": f"On {day_str} in 1969, Apollo 11 astronauts Neil Armstrong and Buzz Aldrin walked on the Moon.",
+            "news": [
+                "New scientific study finds coral reefs showing unexpected resilience to warming ocean waters.",
+                "Astronomers detect a mysterious, repeating radio signal from a galaxy 1.5 billion light-years away."
+            ],
+            "stocks": {sym: f"{sym} ▲ $185.20 (+1.4%)" for sym in (stocks_symbols or ["GOOG"])},
+            "sports": f"The {sports_team or 'Sydney Swans'} won their last match 98-76 in a spectacular performance."
+        }
 
 
 def scan_important_events_via_gemini(events_14_days, api_key, api_provider="google",
@@ -540,7 +636,7 @@ Format: [{{"event": "Dad's birthday", "date": "2026-07-10", "type": "birthday", 
             payload = {
                 "model": or_model,
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 500,
+                "max_tokens": 2048,
             }
             resp = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -553,7 +649,7 @@ Format: [{{"event": "Dad's birthday", "date": "2026-07-10", "type": "birthday", 
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{tm}:generateContent?key={api_key}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"maxOutputTokens": 500, "temperature": 0.3},
+                "generationConfig": {"maxOutputTokens": 2048, "temperature": 0.3},
             }
             resp = requests.post(url, json=payload, timeout=20)
             resp.raise_for_status()
@@ -625,10 +721,10 @@ def _determine_mode_and_events(hour, today_events, tomorrow_events, timezone):
     """Determine the display mode, banner text, and filtered events.
 
     Logic:
-    - Before 10am: Full day view — show ALL of today's events
-    - 10am-3pm: Show remaining events (including all-day). If none left, switch to tomorrow
-    - 3pm+: Show remaining timed events only (all-day events are dropped).
-            If none left, switch to tomorrow
+    - If no events today and tomorrow: Show friendly time-of-day greeting (GOOD MORNING/AFTERNOON/EVENING)
+    - Before 10am: Full day view — show ALL of today's events if any, else morning greeting
+    - 10am-3pm: Show remaining events. If none left, switch to tomorrow if it has events
+    - 3pm+: Show remaining timed events only. If none left, switch to tomorrow if it has events
 
     Returns:
         (mode, banner_text, events) tuple
@@ -638,9 +734,22 @@ def _determine_mode_and_events(hour, today_events, tomorrow_events, timezone):
     day_name = now.strftime("%A")
     tomorrow_name = (now + timedelta(days=1)).strftime("%A")
 
+    # If there are no events today AND no events tomorrow
+    if not today_events and not tomorrow_events:
+        if hour < 12:
+            banner = "GOOD MORNING!"
+        elif hour < 17:
+            banner = "GOOD AFTERNOON!"
+        else:
+            banner = "GOOD EVENING!"
+        return "today", banner, []
+
     if hour < 10:
         # Early morning — show the full day ahead
-        return "today", f"THIS {day_name.upper()}'S ADVENTURE!", today_events
+        if today_events:
+            return "today", f"THIS {day_name.upper()}'S ADVENTURE!", today_events
+        else:
+            return "today", "GOOD MORNING!", []
 
     # After 3pm, drop all-day events — they've served their purpose
     exclude_all_day = (hour >= 15)
@@ -656,8 +765,16 @@ def _determine_mode_and_events(hour, today_events, tomorrow_events, timezone):
             banner = "TONIGHT!"
         return "today", banner, remaining
     else:
-        # All today's events are done — switch to tomorrow
-        return "tomorrow", f"TOMORROW'S ADVENTURE ({tomorrow_name.upper()})!", tomorrow_events
+        # All today's events are done — check if tomorrow has events
+        if tomorrow_events:
+            return "tomorrow", f"TOMORROW'S ADVENTURE ({tomorrow_name.upper()})!", tomorrow_events
+        else:
+            # Fall back to greeting
+            if hour < 17:
+                banner = "GOOD AFTERNOON!"
+            else:
+                banner = "GOOD EVENING!"
+            return "today", banner, []
 
 
 def _compute_generation_hash(mode, banner_text, events, weather_summary="", weather=None):
@@ -775,7 +892,7 @@ Respond with ONLY the numbered list, one per line. Example format:
             payload = {
                 "model": or_model,
                 "messages": [{"role": "user", "content": gemini_prompt}],
-                "max_tokens": 500,
+                "max_tokens": 1024,
             }
             resp = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -789,7 +906,7 @@ Respond with ONLY the numbered list, one per line. Example format:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{tm}:generateContent?key={api_key}"
             payload = {
                 "contents": [{"parts": [{"text": gemini_prompt}]}],
-                "generationConfig": {"maxOutputTokens": 500, "temperature": 0.7},
+                "generationConfig": {"maxOutputTokens": 1024, "temperature": 0.7},
             }
             resp = requests.post(url, json=payload, timeout=30)
             resp.raise_for_status()
@@ -998,11 +1115,72 @@ def _apply_aesthetic_to_template(template, aesthetic, style_overrides):
     return "\n".join(lines)
 
 
+def _get_grid_position_desc(col, row, cols, rows):
+    # col: 1..12, row: 1..8
+    h_pos = ""
+    if col <= 3:
+        h_pos = "on the far left side"
+    elif col <= 5:
+        h_pos = "on the left side"
+    elif col <= 8:
+        if col + cols - 1 >= 9:
+            h_pos = "in the center"
+        else:
+            h_pos = "in the center-left area"
+    elif col >= 9:
+        h_pos = "on the right side"
+    else:
+        h_pos = "in the center area"
+        
+    v_pos = ""
+    if row <= 2:
+        v_pos = "near the top"
+    elif row <= 4:
+        v_pos = "in the upper-middle area"
+    elif row <= 6:
+        v_pos = "in the lower-middle area"
+    else:
+        v_pos = "near the bottom"
+        
+    return f"{v_pos} {h_pos} (grid cells: columns {col} to {col+cols-1}, rows {row} to {row+rows-1})"
+
+
+def _get_aesthetic_info(aesthetic):
+    if aesthetic == "fashion":
+        return {
+            "intro": "stylish fashion-illustration daily planner in high-end editorial sketch",
+            "style_rules": (
+                "STYLE RULES: Fashion illustration / editorial sketch style. Confident loose ink lines, watercolor washes, muted sophisticated color palette.\n"
+                "Use ONLY these colors: black ink on pure white paper, plus limited accents of muted red, sage green, dusty blue, and ochre yellow. The background MUST be plain white (#FFFFFF) — no cream, beige, or off-white tones.\n"
+                "Sophisticated, modern, editorial. Loose and artistic, not tight or cartoonish.\n"
+                "The text must be CLEARLY READABLE — elegant but legible."
+            )
+        }
+    elif aesthetic in AESTHETIC_STYLES:
+        info = AESTHETIC_STYLES[aesthetic]
+        return {
+            "intro": info["intro"].replace("Create a ", "").replace("daily planner ", "").strip("."),
+            "style_rules": info["style_rules"]
+        }
+    else:
+        # Default whimsical
+        return {
+            "intro": "children's illustrated daily planner in pen-and-ink",
+            "style_rules": (
+                "STYLE RULES: Pen-and-ink illustration, clean WHITE background, hand-drawn crosshatching, charming and whimsical.\n"
+                "Use ONLY these colors: black ink on pure white paper, plus limited accents of red, green, blue, and yellow. The background MUST be plain white (#FFFFFF) — no cream, beige, parchment, or off-white tones.\n"
+                "Kid-friendly, warm, joyful. No scary elements.\n"
+                "The text must be CLEARLY READABLE — high contrast against the background."
+            )
+        }
+
+
 def build_prompt(events, characters, prompt_template, timezone=DEFAULT_TIMEZONE,
                  mode="today", banner_text=None, characters_enabled=True,
                  weather=None, birthdays=None, aesthetic="whimsical",
                  scene_description="", important_events=None,
-                 location_name=""):
+                 location_name="", layout_placements=None, widget_configs=None,
+                 widget_data=None):
     """
     Build the image generation prompt from events + characters + weather + countdowns.
     """
@@ -1225,8 +1403,55 @@ def build_prompt(events, characters, prompt_template, timezone=DEFAULT_TIMEZONE,
                 f"Do NOT draw snow, ice, or heavy frost unless the temperature is below 2°C."
             )
 
+        char_area = "on the right side"
+        if layout_placements:
+            left_occupied = False
+            center_occupied = False
+            right_occupied = False
+            for widget_key, p in layout_placements.items():
+                col = p.get("col", 1)
+                cols = p.get("cols", 2)
+                end_col = col + cols - 1
+                if col <= 4:
+                    left_occupied = True
+                if (col <= 8 and end_col >= 5) or (col <= 5 and end_col >= 8):
+                    center_occupied = True
+                if end_col >= 9:
+                    right_occupied = True
+            
+            if not right_occupied:
+                char_area = "on the right side"
+            elif not left_occupied:
+                char_area = "on the left side"
+            elif not center_occupied:
+                char_area = "in the center area"
+            else:
+                # Count cell coverages to find least occupied
+                left_cells = 0
+                center_cells = 0
+                right_cells = 0
+                for widget_key, p in layout_placements.items():
+                    col = p.get("col", 1)
+                    cols = p.get("cols", 2)
+                    rows = p.get("rows", 2)
+                    cells = cols * rows
+                    end_col = col + cols - 1
+                    if col <= 4:
+                        left_cells += cells
+                    if (col <= 8 and end_col >= 5):
+                        center_cells += cells
+                    if end_col >= 9:
+                        right_cells += cells
+                min_cells = min(left_cells, center_cells, right_cells)
+                if min_cells == right_cells:
+                    char_area = "on the right side"
+                elif min_cells == left_cells:
+                    char_area = "on the left side"
+                else:
+                    char_area = "in the center area"
+
         char_section = (
-            f"\n\nCHARACTERS (in the scene on the right side): "
+            f"\n\nCHARACTERS (in the scene {char_area}): "
             f"Show these characters in the scene. Incorporate the day's activities "
             f"into the illustration when relevant and appropriate."
             f"{clothing_note}"
@@ -1307,20 +1532,127 @@ def build_prompt(events, characters, prompt_template, timezone=DEFAULT_TIMEZONE,
         if style_overrides:
             template = _apply_aesthetic_to_template(template, aesthetic, style_overrides)
 
-    prompt = template
-    prompt = prompt.replace("{{DAY_NAME}}", day_name)
-    prompt = prompt.replace("{{BANNER_TEXT}}", banner_text)
-    prompt = prompt.replace("{{SCENE_DESCRIPTION}}", scene_description)
-    prompt = prompt.replace("{{SEASON}}", raw_season)  # Kept for custom templates
-    prompt = prompt.replace("{{TEXT_LAYOUT}}", text_layout)
-    prompt = prompt.replace("{{RIGHT_WIDTH}}", right_width)
-    prompt = prompt.replace("{{EVENT_LIST}}", event_list_str)
-    prompt = prompt.replace("{{CHARACTERS}}", char_section)
-    prompt = prompt.replace("{{BIRTHDAY}}", birthday_text)
-    prompt = prompt.replace("{{MODE}}", mode)
-    prompt = prompt.replace("{{WEATHER}}", weather_section)
-    prompt = prompt.replace("{{COUNTDOWN}}", countdown_text)
-    prompt = prompt.replace("{{REGION_GUIDANCE}}", region_guidance)
+    # ─── Dynamic Layout Prompt Construction ────────────────────────
+    if layout_placements and not (prompt_template and prompt_template.strip()):
+        aes_info = _get_aesthetic_info(aesthetic)
+        
+        layout_desc_parts = [
+            "LAYOUT & SPATIAL STRUCTURE (Grid coordinates: 12 columns × 8 rows):\n"
+            f"The image is a single cohesive illustration. {scene_description} It must fill the entire 800×480 screen. "
+            "It must seamlessly integrate the following textual widgets directly into the illustration at their specific grid positions, "
+            "drawing them inside charming hand-drawn panels, signs, speech bubbles, or clean background spaces. "
+            "Ensure the background behind all text elements is plain white (#FFFFFF) for absolute legibility."
+        ]
+        
+        # Header banner at top
+        layout_desc_parts.append(
+            f"- HEADER BANNER: Near the very top, draw a neat handwritten banner reading: '{banner_text}'."
+        )
+
+        for widget_key, p in layout_placements.items():
+            col, row = p.get("col", 1), p.get("row", 1)
+            cols, rows = p.get("cols", 2), p.get("rows", 2)
+            pos_desc = _get_grid_position_desc(col, row, cols, rows)
+            
+            if widget_key == "calendar":
+                if event_list_str.strip():
+                    layout_desc_parts.append(
+                        f"- CALENDAR / EVENTS (placed {pos_desc}): Draw a neat, clean handwritten list "
+                        f"of today's events:\n{event_list_str}"
+                    )
+            elif widget_key == "weather":
+                if weather_section:
+                    layout_desc_parts.append(
+                        f"- WEATHER INFO (placed {pos_desc}): Draw a small weather banner or stamp reading: "
+                        f"'{weather_badge}'"
+                    )
+            elif widget_key == "quote":
+                quote_text = random.choice(BACKUP_QUOTES)
+                layout_desc_parts.append(
+                    f"- DAILY QUOTE (placed {pos_desc}): Draw this quote in a charming speech bubble or quote card: "
+                    f"\"{quote_text}\""
+                )
+            elif widget_key == "stocks":
+                stocks_info = widget_data.get("stocks", {}) if widget_data else {}
+                stocks_lines = []
+                symbols = widget_configs.get("stocks", {}).get("symbols", ["GOOG"]) if widget_configs else ["GOOG"]
+                for sym in symbols:
+                    val = stocks_info.get(sym) or f"{sym} ▲ $182.45 (+1.2%)"
+                    stocks_lines.append(f"• {val}")
+                stocks_text = "\n".join(stocks_lines)
+                layout_desc_parts.append(
+                    f"- STOCK TICKERS (placed {pos_desc}): Draw these stock prices neatly in a small financial widget card:\n{stocks_text}"
+                )
+            elif widget_key == "sports":
+                sports_text = widget_data.get("sports") if widget_data else None
+                if not sports_text:
+                    team = widget_configs.get("sports", {}).get("team", "Sydney Swans") if widget_configs else "Sydney Swans"
+                    sports_text = f"{team} won recent match! 🏆"
+                layout_desc_parts.append(
+                    f"- SPORTS SCORE (placed {pos_desc}): Draw this sports score/status in a sporty badge or banner:\n• {sports_text}"
+                )
+            elif widget_key == "news":
+                news_list = widget_data.get("news") if widget_data else None
+                if not news_list:
+                    news_list = [
+                        "Local park opens new community garden",
+                        "New solar power records set today"
+                    ]
+                news_lines = "\n".join([f"• {n}" for n in news_list])
+                layout_desc_parts.append(
+                    f"- NEWS HEADLINES (placed {pos_desc}): Draw a mini-newspaper snippet with these headlines:\n{news_lines}"
+                )
+            elif widget_key == "history":
+                history_text = widget_data.get("history") if widget_data else None
+                if not history_text:
+                    history_text = "On this day, an extraordinary event happened!"
+                layout_desc_parts.append(
+                    f"- THIS DAY IN HISTORY (placed {pos_desc}): Draw this historical fact in a small scroll or vintage stamp:\n• {history_text}"
+                )
+            elif widget_key == "countdown":
+                if countdown_text:
+                    layout_desc_parts.append(
+                        f"- COUNTDOWN NOTE (placed {pos_desc}): Draw a small reminder tab reading:\n{countdown_text}"
+                    )
+        
+        # Characters placement
+        if char_section:
+            layout_desc_parts.append(
+                f"- CHARACTERS (placed in open areas): Draw the characters in the remaining free areas of the illustration. "
+                "They should not overlap or block any of the textual widgets described above. "
+                f"{char_section}"
+            )
+            
+        dynamic_layout_desc = "\n\n".join(layout_desc_parts)
+        
+        prompt = f"""Create a daily planner in {aes_info['intro']} style on a clean WHITE background. The output image MUST be EXACTLY 800×480 pixels — a wide landscape format (5:3 aspect ratio). The image MUST be significantly wider than it is tall.
+
+CRITICAL FRAMING: Leave generous margins — at least 40 pixels of padding on ALL sides (top, bottom, left, right). Do NOT place any text, characters, or important elements near the edges. Everything must be well within the safe zone to avoid clipping on the e-ink display.
+
+{dynamic_layout_desc}
+
+{aes_info['style_rules']}
+
+{region_guidance}
+
+Remember: 800×480 pixels, wide landscape, generous margins on all sides, white background.
+"""
+    else:
+        # Standard replacement
+        prompt = template
+        prompt = prompt.replace("{{DAY_NAME}}", day_name)
+        prompt = prompt.replace("{{BANNER_TEXT}}", banner_text)
+        prompt = prompt.replace("{{SCENE_DESCRIPTION}}", scene_description)
+        prompt = prompt.replace("{{SEASON}}", raw_season)
+        prompt = prompt.replace("{{TEXT_LAYOUT}}", text_layout)
+        prompt = prompt.replace("{{RIGHT_WIDTH}}", right_width)
+        prompt = prompt.replace("{{EVENT_LIST}}", event_list_str)
+        prompt = prompt.replace("{{CHARACTERS}}", char_section)
+        prompt = prompt.replace("{{BIRTHDAY}}", birthday_text)
+        prompt = prompt.replace("{{MODE}}", mode)
+        prompt = prompt.replace("{{WEATHER}}", weather_section)
+        prompt = prompt.replace("{{COUNTDOWN}}", countdown_text)
+        prompt = prompt.replace("{{REGION_GUIDANCE}}", region_guidance)
 
     return prompt
 
@@ -1614,6 +1946,22 @@ def _generate_for_device(config: dict, force: bool = False):
 
     important_events = []
 
+    # ─── Fetch widget data via Gemini text model ─────────────────
+    layout_placements = config.get("layout_placements", {})
+    widget_configs = config.get("widget_configs", {})
+    widget_data = {}
+    needs_widget_data = any(w in layout_placements for w in ["stocks", "sports", "news", "history"])
+    if needs_widget_data:
+        stocks_symbols = widget_configs.get("stocks", {}).get("symbols") or (
+            [widget_configs.get("stocks", {}).get("symbol")] if widget_configs.get("stocks", {}).get("symbol") else []
+        )
+        sports_team = widget_configs.get("sports", {}).get("team")
+        print("  📊 Fetching/generating widget data via Gemini...")
+        widget_data = fetch_widget_data_via_gemini(
+            api_key, api_provider=api_provider, text_model=text_model,
+            stocks_symbols=stocks_symbols, sports_team=sports_team
+        )
+
     # ─── Build prompt ───────────────────────────────────────────
     prompt = build_prompt(
         events, characters, prompt_template,
@@ -1626,6 +1974,9 @@ def _generate_for_device(config: dict, force: bool = False):
         scene_description=scene_description,
         important_events=important_events,
         location_name=location_name,
+        layout_placements=layout_placements,
+        widget_configs=widget_configs,
+        widget_data=widget_data,
     )
 
     # Collect reference images
@@ -1702,16 +2053,38 @@ import json
 
 CONFIG_FILE = "data/config.json"
 
+import threading
+config_lock = threading.Lock()
+
 def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    return {}
+    with config_lock:
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, "r") as f:
+                    content = f.read().strip()
+                    if not content:
+                        return {}
+                    return json.loads(content)
+            except Exception as e:
+                print(f"⚠️ Error loading config: {e}")
+                return {}
+        return {}
 
 def save_config(config_data):
-    os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config_data, f, indent=4)
+    with config_lock:
+        os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+        temp_file = CONFIG_FILE + ".tmp"
+        try:
+            with open(temp_file, "w") as f:
+                json.dump(config_data, f, indent=4)
+            os.replace(temp_file, CONFIG_FILE)
+        except Exception as e:
+            print(f"⚠️ Error saving config: {e}")
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except Exception:
+                    pass
 
 @app.get("/api/server-info")
 def get_server_info(request: Request):
@@ -1861,14 +2234,18 @@ def preview_prompt():
 
     tz = ZoneInfo(timezone)
     hour = datetime.now(tz).hour
-    mode = "tomorrow" if hour >= 14 else "today"
+    today = datetime.now(tz).date()
+    tomorrow = today + timedelta(days=1)
 
-    events = []
+    today_events = []
+    tomorrow_events = []
     if ical_url:
-        target_date = datetime.now(tz).date()
-        if mode == "tomorrow":
-            target_date += timedelta(days=1)
-        events = fetch_events_ical(ical_url, timezone=timezone, target_date=target_date)
+        today_events = fetch_events_ical(ical_url, timezone=timezone, target_date=today)
+        tomorrow_events = fetch_events_ical(ical_url, timezone=timezone, target_date=tomorrow)
+
+    mode, banner_text, events = _determine_mode_and_events(
+        hour, today_events, tomorrow_events, timezone
+    )
 
     weather = None
     if latitude and longitude:
@@ -1881,12 +2258,35 @@ def preview_prompt():
 
     prompt_template = config.get("prompt_template", "")
 
+    layout_placements = config.get("layout_placements", {})
+    widget_configs = config.get("widget_configs", {})
+    widget_data = {}
+    
+    api_key = config.get("openrouter_api_key", "") or config.get("api_key", "")
+    text_model = config.get("text_model", DEFAULT_TEXT_MODEL)
+    api_provider = config.get("api_provider", "google")
+    
+    needs_widget_data = any(w in layout_placements for w in ["stocks", "sports", "news", "history"])
+    if needs_widget_data and api_key:
+        stocks_symbols = widget_configs.get("stocks", {}).get("symbols") or (
+            [widget_configs.get("stocks", {}).get("symbol")] if widget_configs.get("stocks", {}).get("symbol") else []
+        )
+        sports_team = widget_configs.get("sports", {}).get("team")
+        widget_data = fetch_widget_data_via_gemini(
+            api_key, api_provider=api_provider, text_model=text_model,
+            stocks_symbols=stocks_symbols, sports_team=sports_team
+        )
+
     prompt = build_prompt(
         events, characters, prompt_template,
         timezone=timezone, mode=mode,
+        banner_text=banner_text,
         characters_enabled=characters_enabled,
         weather=weather,
         birthdays=[],
+        layout_placements=layout_placements,
+        widget_configs=widget_configs,
+        widget_data=widget_data,
     )
 
     return {

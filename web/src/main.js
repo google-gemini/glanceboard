@@ -165,9 +165,17 @@ function httpsCallable(funcs, name) {
   return async (data) => {
     if (name === "preview_prompt") {
       const res = await fetch("/api/preview");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Preview failed");
+      }
       return { data: await res.json() };
     } else if (name === "generate_display") {
       const res = await fetch("/api/generate?force=true", { method: "POST" });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Generation failed");
+      }
       return { data: await res.json() };
     }
     return { data: {} };
@@ -697,11 +705,7 @@ function layoutAutoSave() {
         widget_configs: widgetConfigs,
         capabilities: caps,
       };
-      await Promise.all([
-        setDoc(doc(db, userPath("settings/config")), saveData, { merge: true }),
-        setDoc(doc(db, userPath("settings/account")), saveData, { merge: true }),
-        setDoc(doc(db, devicePath("")), saveData, { merge: true }),
-      ]);
+      await setDoc(doc(db, devicePath("")), saveData, { merge: true });
       console.log("💾 Layout auto-saved");
     } catch (e) {
       console.warn("Layout auto-save failed:", e);
