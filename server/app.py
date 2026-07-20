@@ -473,38 +473,116 @@ Now write the scene description:"""
         print(f"  ⚠️ Scene description failed ({e}), using fallback")
         return f"The setting is a {season} day, {temp}{unit} and {condition}."
 
+def _fetch_sports_real(team_name):
+    """Fetch the last match result for a team from TheSportsDB (free, no API key)."""
+    try:
+        # Search for the team
+        resp = requests.get(
+            "https://www.thesportsdb.com/api/v1/json/3/searchteams.php",
+            params={"t": team_name}, timeout=10,
+        )
+        resp.raise_for_status()
+        teams = resp.json().get("teams", [])
+        if not teams:
+            print(f"  ⚠️ Sports: Team '{team_name}' not found on TheSportsDB")
+            return None
+        
+        team_id = teams[0]["idTeam"]
+        team_full = teams[0].get("strTeam", team_name)
+        
+        # Get last events
+        resp2 = requests.get(
+            "https://www.thesportsdb.com/api/v1/json/3/eventslast.php",
+            params={"id": team_id}, timeout=10,
+        )
+        resp2.raise_for_status()
+        events = resp2.json().get("results", [])
+        if not events:
+            return f"{team_full}: No recent results found."
+        
+        ev = events[0]
+        home = ev.get("strHomeTeam", "?")
+        away = ev.get("strAwayTeam", "?")
+        home_score = ev.get("intHomeScore", "?")
+        away_score = ev.get("intAwayScore", "?")
+        date = ev.get("dateEvent", "")
+        
+        # Determine win/loss/draw from perspective of team_name
+        is_home = (home.lower() in team_name.lower() or team_name.lower() in home.lower())
+        try:
+            h = int(home_score)
+            a = int(away_score)
+            if is_home:
+                if h > a:
+                    result_word = "defeated"
+                elif h < a:
+                    result_word = "lost to"
+                else:
+                    result_word = "drew with"
+                opponent = away
+                score_str = f"{h}-{a}"
+            else:
+                if a > h:
+                    result_word = "defeated"
+                elif a < h:
+                    result_word = "lost to"
+                else:
+                    result_word = "drew with"
+                opponent = home
+                score_str = f"{a}-{h}"
+        except (ValueError, TypeError):
+            result_word = "played"
+            opponent = away if is_home else home
+            score_str = f"{home_score}-{away_score}"
+        
+        date_str = f" on {date}" if date else ""
+        return f"{team_full} {result_word} {opponent} {score_str}{date_str}."
+    except Exception as e:
+        print(f"  ⚠️ Sports API failed: {e}")
+        return None
 
-def fetch_widget_data_via_gemini(api_key, api_provider="google", text_model=None,
-                                 stocks_symbols=None, sports_team=None):
-    """Generate realistic text/data for widgets like history, news, stocks, and sports in one call."""
-    if not api_key:
-        return {}
 
-    stocks_str = ", ".join(stocks_symbols) if stocks_symbols else "GOOG"
-    sports_str = sports_team if sports_team else "Sydney Swans"
-    
-    prompt = f"""You are a helpful widget data assistant for a daily e-ink calendar display.
-Please generate realistic, clean, concise content for the following widgets based on today's date:
+def _fetch_stock_real(symbol):
+    """Fetch real stock price from Yahoo Finance (free, no API key)."""
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        resp = requests.get(url, params={"interval": "1d", "range": "2d"}, headers=headers, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        meta = data.get("chart", {}).get("result", [{}])[0].get("meta", {})
+        price = meta.get("regularMarketPrice")
+        prev_close = meta.get("chartPreviousClose", meta.get("previousClose"))
+        
+        if price is not None and prev_close and prev_close > 0:
+            change_pct = ((price - prev_close) / prev_close) * 100
+            direction = "▲" if change_pct >= 0 else "▼"
+            return f"{symbol} {direction} ${price:.2f} ({change_pct:+.1f}%)"
+        elif price is not None:
+            return f"{symbol} ${price:.2f}"
+        return None
+    except Exception as e:
+        print(f"  ⚠️ Stock API failed for {symbol}: {e}")
+        return None
 
-1. "history": An interesting historical fact for today. Keep it short (max 20 words).
-2. "news": 2 very short, interesting, family-friendly news headlines or world updates.
-3. "stocks": Realistic current stock price and daily percentage change (+/-) for these ticker symbols: {stocks_str}.
-4. "sports": A brief recent update or score for this sports team: {sports_str}.
 
-Output your response strictly as a valid JSON object matching this structure:
-{{
-  "history": "On this day in 1969, Apollo 11 landed on the moon.",
+def _fetch_history_and_news_via_gemini(api_key, api_provider="google", text_model=None):
+    """Use Gemini to generate a historical fact and news headlines (general knowledge, not real-time)."""
+    prompt = """You are a helpful assistant for a daily e-ink display.
+Based on today's date, provide:
+1. "history": An interesting, SPECIFIC historical fact for today's date. Include the year and what happened. Max 20 words.
+2. "news": 2 very short, interesting, family-friendly news headlines about recent world events or discoveries.
+
+Output strictly as a valid JSON object:
+{
+  "history": "On this day in 1969, Apollo 11 astronauts walked on the Moon.",
   "news": [
-    "Scientists discover new coral reef in the Galapagos",
-    "World's oldest tree found to be 5,000 years old"
-  ],
-  "stocks": {{
-    "GOOG": "$182.45 (+1.2% today)"
-  }},
-  "sports": "Sydney Swans won 94-72 against Richmond Tigers."
-}}
-Do NOT wrap the JSON in markdown code blocks. Output raw JSON only."""
-
+    "Scientists discover high water content in Mars rock samples",
+    "Record-breaking coral reef recovery observed in the Great Barrier Reef"
+  ]
+}
+Do NOT wrap in markdown code blocks. Output raw JSON only."""
+    
     try:
         tm = text_model or DEFAULT_TEXT_MODEL
         if api_provider == "openrouter":
@@ -538,36 +616,74 @@ Do NOT wrap the JSON in markdown code blocks. Output raw JSON only."""
             resp = requests.post(url, json=payload, timeout=15)
             resp.raise_for_status()
             result = resp.json()
-            try:
-                text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
-            except Exception as pe:
-                print(f"  ❌ Parsing failed. Raw response: {result}")
-                raise pe
-            
-        # Parse JSON robustly by extracting the JSON object boundaries
+            text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+        # Parse JSON robustly
         first_brace = text.find('{')
         last_brace = text.rfind('}')
         if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
             json_text = text[first_brace:last_brace+1]
         else:
             json_text = text
-            
         return json.loads(json_text.strip())
     except Exception as e:
-        print(f"  ⚠️ fetch_widget_data_via_gemini failed: {e}")
-        # Return fallback mock values so the prompt generator doesn't fail
-        # Make them specific as requested!
-        import datetime
-        day_str = datetime.datetime.now().strftime("%B %d")
-        return {
-            "history": f"On {day_str} in 1969, Apollo 11 astronauts Neil Armstrong and Buzz Aldrin walked on the Moon.",
-            "news": [
-                "New scientific study finds coral reefs showing unexpected resilience to warming ocean waters.",
-                "Astronomers detect a mysterious, repeating radio signal from a galaxy 1.5 billion light-years away."
-            ],
-            "stocks": {sym: f"{sym} ▲ $185.20 (+1.4%)" for sym in (stocks_symbols or ["GOOG"])},
-            "sports": f"The {sports_team or 'Sydney Swans'} won their last match 98-76 in a spectacular performance."
-        }
+        print(f"  ⚠️ History/news Gemini call failed: {e}")
+        return {}
+
+
+def fetch_widget_data_via_gemini(api_key, api_provider="google", text_model=None,
+                                 stocks_symbols=None, sports_team=None):
+    """Fetch real widget data using dedicated APIs (sports, stocks) and Gemini (history, news)."""
+    result = {}
+    
+    # ── Sports: Real API (TheSportsDB, free) ──
+    if sports_team:
+        print(f"  🏈 Fetching real sports data for: {sports_team}")
+        sports_text = _fetch_sports_real(sports_team)
+        if sports_text:
+            result["sports"] = sports_text
+            print(f"  ✅ Sports: {sports_text}")
+    
+    # ── Stocks: Real API (Yahoo Finance, free) ──
+    if stocks_symbols:
+        print(f"  📈 Fetching real stock data for: {', '.join(stocks_symbols)}")
+        stocks_data = {}
+        for sym in stocks_symbols:
+            stock_text = _fetch_stock_real(sym)
+            if stock_text:
+                stocks_data[sym] = stock_text
+                print(f"  ✅ Stock {sym}: {stock_text}")
+            else:
+                stocks_data[sym] = f"{sym} — price unavailable"
+        result["stocks"] = stocks_data
+    
+    # ── History & News: Gemini (general knowledge) ──
+    if api_key:
+        print(f"  📰 Fetching history & news via Gemini...")
+        gemini_data = _fetch_history_and_news_via_gemini(api_key, api_provider, text_model)
+        if gemini_data.get("history"):
+            result["history"] = gemini_data["history"]
+            print(f"  ✅ History: {result['history']}")
+        if gemini_data.get("news"):
+            result["news"] = gemini_data["news"]
+            print(f"  ✅ News: {len(result['news'])} headlines")
+    
+    # ── Fallbacks for missing data ──
+    if "history" not in result:
+        from datetime import datetime as dt
+        day_str = dt.now().strftime("%B %d")
+        result["history"] = f"On {day_str} in 1969, Apollo 11 astronauts walked on the Moon."
+    if "news" not in result:
+        result["news"] = [
+            "Scientists make breakthrough in renewable energy storage.",
+            "New marine sanctuary protects high-biodiversity coral reef."
+        ]
+    if "sports" not in result and sports_team:
+        result["sports"] = f"{sports_team}: No recent results available."
+    if "stocks" not in result and stocks_symbols:
+        result["stocks"] = {sym: f"{sym} — price unavailable" for sym in stocks_symbols}
+    
+    return result
 
 
 def scan_important_events_via_gemini(events_14_days, api_key, api_provider="google",
