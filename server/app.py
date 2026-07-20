@@ -131,7 +131,7 @@ WMO_WEATHER_CODES = {
     99: ("Heavy thunderstorm with hail", "⛈️"),
 }
 
-DEFAULT_PROMPT_TEMPLATE = """Create a children's illustrated daily planner in pen-and-ink style on warm parchment/cream paper background with crosshatching. The output image MUST be EXACTLY 800×480 pixels — a wide landscape format (5:3 aspect ratio). The image MUST be significantly wider than it is tall.
+DEFAULT_PROMPT_TEMPLATE = """Create a children's illustrated daily planner in pen-and-ink style on a clean white paper background with crosshatching. The output image MUST be EXACTLY 800×480 pixels — a wide landscape format (5:3 aspect ratio). The image MUST be significantly wider than it is tall.
 
 CRITICAL FRAMING: Leave generous margins — at least 40 pixels of padding on ALL sides (top, bottom, left, right). Do NOT place any text, characters, or important elements near the edges. Everything must be well within the safe zone to avoid clipping on the e-ink display.
 
@@ -153,8 +153,8 @@ BOTTOM LEFT CORNER — WEATHER:
 
 {{COUNTDOWN}}
 
-STYLE RULES: Pen-and-ink illustration, warm parchment background, hand-drawn crosshatching, charming and whimsical.
-Use ONLY these colors: black ink, cream/white paper, plus limited accents of red, green, blue, and yellow.
+STYLE RULES: Pen-and-ink illustration, clean WHITE background, hand-drawn crosshatching, charming and whimsical.
+Use ONLY these colors: black ink on pure white paper, plus limited accents of red, green, blue, and yellow. The background MUST be plain white (#FFFFFF) — no cream, beige, parchment, or off-white tones.
 Kid-friendly, warm, joyful. No scary elements.
 The text on the left must be CLEARLY READABLE — high contrast against the background.
 Remember: 800×480 pixels, wide landscape, generous margins on all sides.
@@ -168,7 +168,7 @@ CRITICAL FRAMING: Leave generous margins — at least 40 pixels of padding on AL
 
 LAYOUT — FULL-WIDTH SCENE WITH OVERLAID TEXT:
 
-The ENTIRE image is a single elegant fashion illustration. {{SCENE_DESCRIPTION}} Think high-fashion editorial meets daily planner — loose, confident brush strokes and fine ink lines on a clean off-white or warm cream background.
+The ENTIRE image is a single elegant fashion illustration. {{SCENE_DESCRIPTION}} Think high-fashion editorial meets daily planner — loose, confident brush strokes and fine ink lines on a clean white background.
 
 TOP: An elegant hand-lettered header reads: '{{BANNER_TEXT}}' in stylish calligraphic or modern serif letters. Keep it well below the top edge.
 
@@ -185,7 +185,7 @@ BOTTOM LEFT CORNER — WEATHER:
 {{COUNTDOWN}}
 
 STYLE RULES: Fashion illustration / editorial sketch style. Confident loose ink lines, watercolor washes, muted sophisticated color palette.
-Use ONLY these colors: black ink, cream/white paper, plus limited accents of muted red, sage green, dusty blue, and ochre yellow.
+Use ONLY these colors: black ink on pure white paper, plus limited accents of muted red, sage green, dusty blue, and ochre yellow. The background MUST be plain white (#FFFFFF) — no cream, beige, or off-white tones.
 Sophisticated, modern, editorial. Loose and artistic, not tight or cartoonish.
 The text on the left must be CLEARLY READABLE — elegant but legible.
 Remember: 800×480 pixels, wide landscape, generous margins on all sides.
@@ -905,9 +905,10 @@ AESTHETIC_STYLES = {
         "intro": "Create a soft watercolour daily planner painted in loose, flowing washes on textured watercolour paper.",
         "scene": "The ENTIRE image is a dreamy watercolour painting.",
         "style_rules": (
-            "STYLE RULES: Soft watercolour washes, wet-on-wet blending, visible paper texture. "
+            "STYLE RULES: Soft watercolour washes, wet-on-wet blending. "
             "Loose, painterly brushwork — NOT digital or perfect. Think Beatrix Potter meets travel journal.\n"
-            "Use soft, blended colours: muted blues, warm yellows, gentle greens, rosy pinks.\n"
+            "Use soft, blended colours: muted blues, warm yellows, gentle greens, rosy pinks on a pure WHITE background.\n"
+            "The background MUST be plain white (#FFFFFF) — no cream, beige, or off-white. "
             "Dreamy, gentle, and inviting. The text must be CLEARLY READABLE."
         ),
     },
@@ -917,7 +918,8 @@ AESTHETIC_STYLES = {
         "style_rules": (
             "STYLE RULES: Crisp pixel art, visible square pixels, limited 16-bit colour palette. "
             "Think classic video game sprite art — Stardew Valley, Earthbound, or early Final Fantasy.\n"
-            "Use bold, saturated colours with clear outlines. Black outlines around shapes.\n"
+            "Use bold, saturated colours with clear outlines. Black outlines around shapes. "
+            "The background MUST be plain white (#FFFFFF) — no cream, beige, or off-white.\n"
             "Charming, nostalgic, retro. Text should be in a pixel font style but CLEARLY READABLE."
         ),
     },
@@ -927,7 +929,8 @@ AESTHETIC_STYLES = {
         "style_rules": (
             "STYLE RULES: Bold black ink outlines, halftone dot shading, comic book colouring. "
             "Think vintage newspaper comic strips or classic Marvel/DC illustration.\n"
-            "Use strong primary colours: red, blue, yellow, with black outlines and Ben-Day dot patterns.\n"
+            "Use strong primary colours: red, blue, yellow, with black outlines and Ben-Day dot patterns. "
+            "The background MUST be plain white (#FFFFFF) — no cream, beige, or off-white.\n"
             "Dynamic, energetic, fun. Text should be in comic book lettering style but CLEARLY READABLE."
         ),
     },
@@ -937,8 +940,9 @@ AESTHETIC_STYLES = {
         "style_rules": (
             "STYLE RULES: Traditional Japanese ink wash painting (sumi-e). Flowing brush strokes, "
             "varying ink density from deep black to pale grey washes.\n"
-            "Use mostly black ink on white/cream paper, with occasional subtle accents of "
-            "muted red (vermillion seal style) and sage green.\n"
+            "Use mostly black ink on pure white paper, with occasional subtle accents of "
+            "muted red (vermillion seal style) and sage green. "
+            "The background MUST be plain white (#FFFFFF) — no cream, beige, or off-white.\n"
             "Serene, contemplative, elegant. Embrace empty space (ma). "
             "Text should be in elegant brush-style but CLEARLY READABLE."
         ),
@@ -957,6 +961,7 @@ def _get_aesthetic_style(aesthetic):
             "scene": f"The ENTIRE image is rendered in this style: {aesthetic}.",
             "style_rules": (
                 f"STYLE RULES: {aesthetic}.\n"
+                "The background MUST be plain white (#FFFFFF) — no cream, beige, parchment, or off-white tones.\n"
                 "The text on the left must be CLEARLY READABLE — high contrast against the background."
             ),
         }
@@ -1708,6 +1713,50 @@ def save_config(config_data):
     with open(CONFIG_FILE, "w") as f:
         json.dump(config_data, f, indent=4)
 
+@app.get("/api/server-info")
+def get_server_info(request: Request):
+    """Return the server's local network IP for device configuration."""
+    import socket
+    try:
+        # Connect to an external address to find the local network IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        local_ip = "127.0.0.1"
+    
+    port = request.url.port or 8000
+    return {
+        "local_ip": local_ip,
+        "port": port,
+        "display_url": f"http://{local_ip}:{port}/api/display",
+    }
+
+@app.post("/api/upload")
+async def upload_file(request: Request):
+    """Upload a file (character image) and return its local URL."""
+    from fastapi.responses import JSONResponse
+    import uuid
+    
+    form = await request.form()
+    file = form.get("file")
+    if not file:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    upload_dir = "data/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    ext = os.path.splitext(file.filename)[1] or ".png"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    
+    contents = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(contents)
+    
+    return {"url": f"/uploads/{filename}"}
+
 @app.get("/api/config")
 def get_config():
     return load_config()
@@ -1742,6 +1791,59 @@ def get_status():
     config = load_config()
     status = config.get("status", {})
     return status
+
+# ─── Device-facing endpoints (for PhotoPainter / e-ink display) ──
+
+@app.get("/api/display")
+def get_display_image(format: str = "png"):
+    """
+    Returns the latest display image for the e-ink device.
+    The PhotoPainter custom firmware should poll this URL.
+    
+    Query params:
+      - format: "png" (default) or "bmp"
+    
+    Usage: Point your PhotoPainter firmware at:
+      http://<your-server>:8000/api/display
+    """
+    from fastapi.responses import FileResponse
+    
+    dithered = "data/images/latest_display_dithered.png"
+    original = "data/images/latest_display.png"
+    
+    # Prefer dithered (optimised for e-ink), fall back to original
+    if os.path.exists(dithered):
+        image_path = dithered
+    elif os.path.exists(original):
+        image_path = original
+    else:
+        raise HTTPException(status_code=404, detail="No image generated yet")
+    
+    if format == "bmp":
+        # Convert to BMP for firmware that requires it
+        bmp_path = "data/images/latest_display.bmp"
+        try:
+            img = Image.open(image_path).convert("RGB")
+            img.save(bmp_path, "BMP")
+            return FileResponse(bmp_path, media_type="image/bmp", filename="display.bmp")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"BMP conversion failed: {e}")
+    
+    return FileResponse(image_path, media_type="image/png", filename="display.png")
+
+@app.get("/api/display/check")
+def check_display_update():
+    """
+    Lightweight check for the device to see if a new image is available.
+    Returns the last_generated timestamp so the device can skip re-downloading.
+    """
+    config = load_config()
+    status = config.get("status", {})
+    return {
+        "last_generated": status.get("last_generated"),
+        "has_image": os.path.exists("data/images/latest_display_dithered.png") or 
+                     os.path.exists("data/images/latest_display.png"),
+    }
 
 @app.get("/api/preview")
 def preview_prompt():
@@ -1857,7 +1959,19 @@ app.router.lifespan_context = lifespan
 # ─── Static Files ───────────────────────────────────────────────
 import os
 os.makedirs("data/images", exist_ok=True)
+os.makedirs("data/uploads", exist_ok=True)
 app.mount("/images", StaticFiles(directory="data/images"), name="images")
+app.mount("/uploads", StaticFiles(directory="data/uploads"), name="uploads")
 # Mount the web application
 # Note: we need to build the frontend first
-app.mount("/", StaticFiles(directory="../web/dist", html=True), name="static")
+try:
+    app.mount("/", StaticFiles(directory="../web/dist", html=True), name="static")
+except Exception:
+    pass  # Frontend not built yet — that's fine for dev
+
+# ─── Run ────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)

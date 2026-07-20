@@ -81,6 +81,7 @@ async function getDocs(collRef) {
   if (collRef.path.includes("characters")) {
     const chars = _localConfig.characters || [];
     return {
+      size: chars.length,
       empty: chars.length === 0,
       forEach: (cb) => {
         chars.forEach(c => cb({ id: c.id, data: () => c, reference: { delete: async () => {} } }));
@@ -174,9 +175,15 @@ function httpsCallable(funcs, name) {
 }
 
 function getStorage() { return stg; }
-function storageRef() { return {}; }
-async function uploadBytes() {}
-async function getDownloadURL() { return ""; }
+function storageRef(storage, path) { return { path, _uploadedUrl: null }; }
+async function uploadBytes(ref, file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  const data = await res.json();
+  ref._uploadedUrl = data.url;
+}
+async function getDownloadURL(ref) { return ref._uploadedUrl || ""; }
 
 
 // ─── State ─────────────────────────────────────────────────────
@@ -208,7 +215,7 @@ const WIDGETS = {
 
 const GRID_COLS = 12;
 const GRID_ROWS = 8;
-const DEFAULT_WIDGET_SIZE = { cols: 4, rows: 4 };
+const DEFAULT_WIDGET_SIZE = { cols: 2, rows: 2 };
 const MIN_WIDGET_SIZE = { cols: 2, rows: 2 };
 
 let placements = {};    // widgetKey -> { col, row, cols, rows }
@@ -583,11 +590,17 @@ async function loadDashboard() {
         ? "iCal URL"
         : "Not configured";
 
-      // Display URL — local path for self-hosted
-      const piUrl = `${window.location.origin}/images/latest_display_dithered.png`;
-      if ($("#setting-pi-url")) {
-        $("#setting-pi-url").value = piUrl;
-      }
+      // Display URL — fetch from backend which knows its own network IP
+      try {
+        const infoRes = await fetch("/api/server-info");
+        if (infoRes.ok) {
+          const info = await infoRes.json();
+          const piUrl = info.display_url;
+          if ($("#setting-pi-url")) {
+            $("#setting-pi-url").value = piUrl;
+          }
+        }
+      } catch (e) { /* non-critical */ }
 
       // Estimate monthly cost
       const modelCosts = {
@@ -775,14 +788,16 @@ function layoutRenderCanvas() {
 }
 
 function hasRequiredConfig(widgetKey) {
-  const cfg = widgetConfigs[widgetKey];
-  if (!cfg) return false;
+  const cfg = widgetConfigs[widgetKey] || {};
   switch (widgetKey) {
     case "weather": return !!(cfg.latitude || cfg.location_name);
     case "sports": return !!(cfg.team);
     case "calendar": return calendarConnected || !!(_localConfig && _localConfig.ical_url);
     case "countdown": return !!(cfg.event_name && cfg.event_date);
-    case "stocks": return !!(cfg.symbol);
+    case "stocks": {
+      const symbols = cfg.symbols || (cfg.symbol ? [cfg.symbol] : []);
+      return symbols.length > 0;
+    }
     default: return true;
   }
 }
@@ -998,17 +1013,22 @@ function openLayoutConfig(widgetKey) {
     case "sports":
       html = `<div class="form-group"><label>Your team</label><input type="text" id="cfg-sports-team" placeholder="e.g. Arsenal, Lakers" value="${cfg.team || ""}" maxlength="60"></div>`;
       break;
-    case "calendar":
-      html = calendarConnected
-        ? `<p class="help-text" style="color:var(--success)">✅ Google Calendar connected</p>`
-        : `<p class="help-text">Calendar will be connected from Settings → Calendar.</p>`;
+    case "calendar": {
+      const icalSet = calendarConnected || !!(_localConfig && _localConfig.ical_url);
+      html = icalSet
+        ? `<p class="help-text" style="color:var(--success)">✅ Calendar connected via iCal URL</p>`
+        : `<p class="help-text">⚠️ No calendar connected yet.</p>
+           <p class="help-text">Add your iCal URL in <a href="#settings" class="cfg-go-settings" style="color:var(--accent);font-weight:600;cursor:pointer;">⚙️ Settings</a> to show your events on the display.</p>`;
       break;
+    }
     case "countdown":
       html = `<div class="form-group"><label>Event name</label><input type="text" id="cfg-countdown-name" placeholder="e.g. Holiday" value="${cfg.event_name || ""}" maxlength="40"></div><div class="form-group"><label>Date</label><input type="date" id="cfg-countdown-date" value="${cfg.event_date || ""}"></div>`;
       break;
-    case "stocks":
-      html = `<div class="form-group"><label>Ticker symbol</label><input type="text" id="cfg-stock-symbol" placeholder="e.g. GOOG, AAPL" value="${cfg.symbol || ""}" maxlength="10" style="text-transform:uppercase"></div>`;
+    case "stocks": {
+      const symbols = cfg.symbols || (cfg.symbol ? [cfg.symbol] : []);
+      html = `<div class="form-group"><label>Ticker symbols</label><input type="text" id="cfg-stock-symbols" placeholder="e.g. GOOG, AAPL, TSLA" value="${symbols.join(', ')}" style="text-transform:uppercase"><p class="help-text">Separate multiple tickers with commas</p></div>`;
       break;
+    }
     default:
       html = `<p class="help-text">No configuration needed — this widget just works!</p>`;
   }
@@ -1019,6 +1039,12 @@ function openLayoutConfig(widgetKey) {
 }
 
 function wireLayoutConfigHandlers(widgetKey) {
+  // Calendar "go to Settings" link
+  document.querySelector(".cfg-go-settings")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    $("#layout-config-panel").classList.add("hidden");
+    document.querySelector('[data-page="settings"]').click();
+  });
   $("#cfg-save-btn")?.addEventListener("click", () => {
     saveLayoutWidgetConfig(widgetKey);
     $("#layout-config-panel").classList.add("hidden");
@@ -1064,9 +1090,12 @@ function saveLayoutWidgetConfig(widgetKey) {
         event_date: $("#cfg-countdown-date")?.value || "",
       };
       break;
-    case "stocks":
-      widgetConfigs.stocks = { symbol: ($("#cfg-stock-symbol")?.value.trim() || "").toUpperCase() };
+    case "stocks": {
+      const raw = ($("#cfg-stock-symbols")?.value || "").toUpperCase();
+      const symbols = raw.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
+      widgetConfigs.stocks = { symbols, symbol: symbols[0] || "" };
       break;
+    }
   }
 }
 
@@ -1526,10 +1555,16 @@ async function loadSettings() {
   // Calendar connection status (iCal URL for self-hosted)
   calendarConnected = !!c.ical_url;
 
-  // Device URL — local path for self-hosted
-  const piUrl = `${window.location.origin}/images/latest_display_dithered.png`;
-  $("#setting-pi-url").value = piUrl;
-  $("#setting-pi-url").dataset.defaultUrl = piUrl;
+  // Device URL — fetch from backend which knows its own network IP
+  try {
+    const infoRes = await fetch("/api/server-info");
+    if (infoRes.ok) {
+      const info = await infoRes.json();
+      const piUrl = info.display_url;
+      $("#setting-pi-url").value = piUrl;
+      $("#setting-pi-url").dataset.defaultUrl = piUrl;
+    }
+  } catch (e) { /* non-critical */ }
 
   updateModelCostInfo();
 
