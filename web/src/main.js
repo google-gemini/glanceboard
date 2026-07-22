@@ -1,4 +1,20 @@
 /**
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
  * Glanceboard — Frontend JavaScript
  *
  * Multi-user dashboard with Google Sign-In, Calendar API integration,
@@ -219,6 +235,7 @@ const WIDGETS = {
   history:   { icon: "📜", name: "History",    preview: "On this day in 1969\nApollo 11 landed 🌙", needsConfig: false },
   countdown: { icon: "⏳", name: "Countdown",  preview: "12 days until\nHoliday! 🏖️", needsConfig: true, configType: "countdown" },
   stocks:    { icon: "📊", name: "Stocks",     preview: "GOOG ▲ $182.45\n+1.2% today", needsConfig: true, configType: "stocks" },
+  email:     { icon: "📧", name: "Email",      preview: "3 unread\n📬 School newsletter\n📦 Amazon delivery", needsConfig: true, configType: "email" },
 };
 
 const GRID_COLS = 12;
@@ -679,6 +696,7 @@ function buildCapabilities() {
     else if (wk === "history") caps.this_day_in_history = true;
     else if (wk === "countdown") caps.countdown = { enabled: true, ...(widgetConfigs.countdown || {}) };
     else if (wk === "stocks") caps.stocks = { enabled: true, ...(widgetConfigs.stocks || {}) };
+    else if (wk === "email") caps.email = { enabled: true, ...(widgetConfigs.email || {}) };
   });
   for (const wk of Object.keys(WIDGETS)) {
     if (wk === "weather" && !caps.weather) caps.weather = false;
@@ -689,6 +707,7 @@ function buildCapabilities() {
     else if (wk === "history" && !caps.this_day_in_history) caps.this_day_in_history = false;
     else if (wk === "countdown" && !caps.countdown) caps.countdown = false;
     else if (wk === "stocks" && !caps.stocks) caps.stocks = false;
+    else if (wk === "email" && !caps.email) caps.email = false;
   }
   return caps;
 }
@@ -802,6 +821,7 @@ function hasRequiredConfig(widgetKey) {
       const symbols = cfg.symbols || (cfg.symbol ? [cfg.symbol] : []);
       return symbols.length > 0;
     }
+    case "email": return !!cfg._authorised;
     default: return true;
   }
 }
@@ -1033,6 +1053,10 @@ function openLayoutConfig(widgetKey) {
       html = `<div class="form-group"><label>Ticker symbols</label><input type="text" id="cfg-stock-symbols" placeholder="e.g. GOOG, AAPL, TSLA" value="${symbols.join(', ')}" style="text-transform:uppercase"><p class="help-text">Separate multiple tickers with commas</p></div>`;
       break;
     }
+    case "email": {
+      html = `<div class="form-group" id="cfg-email-status"><p class="help-text">Checking email status...</p></div>`;
+      break;
+    }
     default:
       html = `<p class="help-text">No configuration needed — this widget just works!</p>`;
   }
@@ -1081,6 +1105,96 @@ function wireLayoutConfigHandlers(widgetKey) {
     }
     btn.disabled = false; btn.textContent = "Find";
   });
+
+  // Email widget: check status and show appropriate UI
+  if (WIDGETS[widgetKey]?.configType === "email") {
+    _loadEmailConfigPanel(widgetKey);
+  }
+}
+
+async function _loadEmailConfigPanel(widgetKey) {
+  const container = $("#cfg-email-status");
+  if (!container) return;
+  try {
+    const baseUrl = _localConfig ? '' : '';
+    const resp = await fetch(`${baseUrl}/api/email/status`);
+    const data = await resp.json();
+
+    if (!data.available) {
+      container.innerHTML = `
+        <p class="help-text" style="color:var(--warning)">⚠️ Email dependencies not installed</p>
+        <p class="help-text">Run this in your <code>server/</code> directory:</p>
+        <pre style="background:var(--bg-tertiary);padding:12px;border-radius:8px;font-size:13px;overflow-x:auto;">pip install -r requirements-email.txt</pre>
+        <p class="help-text">Then restart the server. See <a href="https://github.com/raphdixon/glanceboard/blob/main/EMAIL_SETUP.md" target="_blank" style="color:var(--accent)">EMAIL_SETUP.md</a> for full instructions.</p>
+      `;
+      return;
+    }
+
+    if (!data.configured) {
+      container.innerHTML = `
+        <p class="help-text" style="color:var(--warning)">⚠️ Gmail credentials not found</p>
+        <p class="help-text">You need to create Google OAuth credentials and save them as <code>server/data/gmail_credentials.json</code>.</p>
+        <p class="help-text">See <a href="https://github.com/raphdixon/glanceboard/blob/main/EMAIL_SETUP.md" target="_blank" style="color:var(--accent)">EMAIL_SETUP.md</a> for step-by-step instructions.</p>
+      `;
+      return;
+    }
+
+    if (data.authorised) {
+      const maxEmails = (widgetConfigs.email || {}).max_emails || 5;
+      container.innerHTML = `
+        <p class="help-text" style="color:var(--success)">✅ Gmail connected</p>
+        <div class="form-group" style="margin-top:12px;">
+          <label>Max emails to show</label>
+          <input type="number" id="cfg-email-max" min="1" max="10" value="${maxEmails}" style="width:80px;">
+        </div>
+        <button id="cfg-email-disconnect" class="btn btn-secondary" style="margin-top:8px;width:100%;">Disconnect Gmail</button>
+      `;
+      widgetConfigs.email = { ...(widgetConfigs.email || {}), _authorised: true };
+      $("#cfg-email-disconnect")?.addEventListener("click", async () => {
+        if (!confirm("Disconnect Gmail from Glanceboard?")) return;
+        await fetch("/api/email/disconnect", { method: "POST" });
+        delete widgetConfigs.email?._authorised;
+        _loadEmailConfigPanel(widgetKey);
+        layoutRenderCanvas();
+        layoutAutoSave();
+        toast("Gmail disconnected", "info");
+      });
+    } else {
+      container.innerHTML = `
+        <p class="help-text">Connect your Gmail account to show an email digest on your display.</p>
+        <p class="help-text" style="font-size:12px;opacity:0.7;">Only subject lines and sender names are read. See <a href="https://github.com/raphdixon/glanceboard/blob/main/EMAIL_SETUP.md" target="_blank" style="color:var(--accent)">EMAIL_SETUP.md</a> for details.</p>
+        <button id="cfg-email-connect" class="btn btn-primary" style="margin-top:12px;width:100%;">Connect Gmail</button>
+      `;
+      $("#cfg-email-connect")?.addEventListener("click", async () => {
+        try {
+          const resp = await fetch("/api/email/auth-url");
+          const data = await resp.json();
+          if (data.auth_url) {
+            window.open(data.auth_url, "_blank");
+            // Poll for completion
+            const poll = setInterval(async () => {
+              const sr = await fetch("/api/email/status");
+              const sd = await sr.json();
+              if (sd.authorised) {
+                clearInterval(poll);
+                widgetConfigs.email = { ...(widgetConfigs.email || {}), _authorised: true };
+                _loadEmailConfigPanel(widgetKey);
+                layoutRenderCanvas();
+                layoutAutoSave();
+                toast("Gmail connected! ✅", "success");
+              }
+            }, 2000);
+            // Stop polling after 5 minutes
+            setTimeout(() => clearInterval(poll), 300000);
+          }
+        } catch (e) {
+          toast("Failed to start Gmail auth", "error");
+        }
+      });
+    }
+  } catch (e) {
+    container.innerHTML = `<p class="help-text" style="color:var(--error)">❌ Could not check email status</p>`;
+  }
 }
 
 function saveLayoutWidgetConfig(widgetKey) {
@@ -1098,6 +1212,11 @@ function saveLayoutWidgetConfig(widgetKey) {
       const raw = ($("#cfg-stock-symbols")?.value || "").toUpperCase();
       const symbols = raw.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
       widgetConfigs.stocks = { symbols, symbol: symbols[0] || "" };
+      break;
+    }
+    case "email": {
+      const maxEmails = parseInt($("#cfg-email-max")?.value || "5", 10);
+      widgetConfigs.email = { ...(widgetConfigs.email || {}), max_emails: Math.max(1, Math.min(10, maxEmails || 5)) };
       break;
     }
   }

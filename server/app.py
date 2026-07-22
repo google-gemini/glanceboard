@@ -1,3 +1,17 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Glanceboard — Firebase Cloud Functions (Multi-User, Multi-Device).
 
@@ -73,6 +87,23 @@ GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
 CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 DEFAULT_TEXT_MODEL = "gemini-flash-latest"
+
+# ─── Optional Gmail Integration ────────────────────────────────
+# These dependencies are optional — install via: pip install -r requirements-email.txt
+# See EMAIL_SETUP.md for full setup instructions.
+GMAIL_AVAILABLE = False
+try:
+    from google.oauth2.credentials import Credentials
+    from google_auth_oauthlib.flow import InstalledAppFlow, Flow
+    from google.auth.transport.requests import Request as GoogleAuthRequest
+    from googleapiclient.discovery import build as build_gmail_service
+    GMAIL_AVAILABLE = True
+except ImportError:
+    pass
+
+GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+GMAIL_CREDENTIALS_FILE = "data/gmail_credentials.json"
+GMAIL_TOKEN_FILE = "data/gmail_token.json"
 
 # E-Ink Spectra 6 color palette (RGB)
 EINK_PALETTE = np.array([
@@ -631,6 +662,113 @@ Do NOT wrap in markdown code blocks. Output raw JSON only."""
         return {}
 
 
+# ─── Email Widget Helpers ───────────────────────────────────────
+
+def _get_gmail_credentials():
+    """Load stored Gmail OAuth credentials, refreshing if needed.
+    Returns Credentials object or None."""
+    if not GMAIL_AVAILABLE:
+        return None
+    if not os.path.exists(GMAIL_TOKEN_FILE):
+        return None
+    try:
+        creds = Credentials.from_authorized_user_file(GMAIL_TOKEN_FILE, GMAIL_SCOPES)
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(GoogleAuthRequest())
+            with open(GMAIL_TOKEN_FILE, "w") as f:
+                f.write(creds.to_json())
+        if creds and creds.valid:
+            return creds
+    except Exception as e:
+        print(f"  ⚠️ Gmail token refresh failed: {e}")
+    return None
+
+
+def _fetch_email_summaries(max_results=5):
+    """Fetch unread email subject lines and senders from Gmail.
+    Returns list of {sender, subject} dicts, or None if not configured."""
+    creds = _get_gmail_credentials()
+    if not creds:
+        return None
+    try:
+        service = build_gmail_service("gmail", "v1", credentials=creds)
+        results = service.users().messages().list(
+            userId="me", q="is:unread category:primary",
+            maxResults=max_results
+        ).execute()
+        messages = results.get("messages", [])
+        if not messages:
+            return []
+
+        email_list = []
+        for msg_ref in messages:
+            msg = service.users().messages().get(
+                userId="me", id=msg_ref["id"], format="metadata",
+                metadataHeaders=["From", "Subject"]
+            ).execute()
+            headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
+            sender = headers.get("From", "Unknown")
+            # Clean sender: "John Doe <john@example.com>" -> "John Doe"
+            if "<" in sender:
+                sender = sender.split("<")[0].strip().strip('"')
+            subject = headers.get("Subject", "(no subject)")
+            email_list.append({"sender": sender, "subject": subject})
+        return email_list
+    except Exception as e:
+        print(f"  ⚠️ Gmail fetch failed: {e}")
+        return None
+
+
+def _summarize_emails_via_gemini(email_list, api_key, api_provider="google", text_model=None):
+    """Use Gemini to create a short, friendly email digest from subject lines."""
+    if not email_list or not api_key:
+        return None
+    
+    email_lines = "\n".join([f"- From: {e['sender']} — Subject: {e['subject']}" for e in email_list])
+    prompt = f"""Summarize these {len(email_list)} unread emails into a very short digest (2-3 lines max) suitable for an e-ink display.
+Be concise and friendly. Group similar items. Use emoji sparingly.
+Do NOT include email addresses. Just give the key info.
+
+Emails:
+{email_lines}
+
+Respond with ONLY the digest text, no JSON, no markdown."""
+
+    try:
+        if api_provider == "openrouter":
+            tm = text_model or DEFAULT_TEXT_MODEL
+            or_model = f"google/{tm}" if not tm.startswith("google/") else tm
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "model": or_model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 512,
+            }
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers, json=payload, timeout=15,
+            )
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"].strip()
+        else:
+            tm = text_model or DEFAULT_TEXT_MODEL
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{tm}:generateContent?key={api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"maxOutputTokens": 512, "temperature": 0.5},
+            }
+            resp = requests.post(url, json=payload, timeout=15)
+            resp.raise_for_status()
+            result = resp.json()
+            return result["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception as e:
+        print(f"  ⚠️ Email summarization failed: {e}")
+        return None
+
+
 def fetch_widget_data_via_gemini(api_key, api_provider="google", text_model=None,
                                  stocks_symbols=None, sports_team=None):
     """Fetch real widget data using dedicated APIs (sports, stocks) and Gemini (history, news)."""
@@ -684,6 +822,31 @@ def fetch_widget_data_via_gemini(api_key, api_provider="google", text_model=None
         result["stocks"] = {sym: f"{sym} — price unavailable" for sym in stocks_symbols}
     
     return result
+
+
+def fetch_email_widget_data(api_key, api_provider="google", text_model=None, max_emails=5):
+    """Fetch and summarise email data for the email widget.
+    Returns dict with 'email_summary' and 'email_count', or empty dict."""
+    if not GMAIL_AVAILABLE:
+        print("  📧 Email: dependencies not installed (pip install -r requirements-email.txt)")
+        return {}
+    
+    email_list = _fetch_email_summaries(max_results=max_emails)
+    if email_list is None:
+        print("  📧 Email: not configured or not authorised")
+        return {}
+    
+    if len(email_list) == 0:
+        return {"email_summary": "📭 No unread emails", "email_count": 0}
+    
+    print(f"  📧 Fetched {len(email_list)} unread emails, summarising...")
+    summary = _summarize_emails_via_gemini(email_list, api_key, api_provider, text_model)
+    if not summary:
+        # Fallback: just list senders
+        senders = ", ".join([e["sender"] for e in email_list[:3]])
+        summary = f"{len(email_list)} unread: {senders}"
+    
+    return {"email_summary": summary, "email_count": len(email_list)}
 
 
 def scan_important_events_via_gemini(events_14_days, api_key, api_provider="google",
@@ -1725,6 +1888,12 @@ def build_prompt(events, characters, prompt_template, timezone=DEFAULT_TIMEZONE,
                 layout_desc_parts.append(
                     f"- THIS DAY IN HISTORY (placed {pos_desc}): Draw this historical fact in a small scroll or vintage stamp:\n• {history_text}"
                 )
+            elif widget_key == "email":
+                email_summary = widget_data.get("email_summary") if widget_data else None
+                if email_summary:
+                    layout_desc_parts.append(
+                        f"- EMAIL DIGEST (placed {pos_desc}): Draw a small envelope/mail icon with this email summary in a compact card:\n• {email_summary}"
+                    )
             elif widget_key == "countdown":
                 if countdown_text:
                     layout_desc_parts.append(
@@ -2078,6 +2247,15 @@ def _generate_for_device(config: dict, force: bool = False):
             stocks_symbols=stocks_symbols, sports_team=sports_team
         )
 
+    # ─── Fetch email widget data (optional) ──────────────────────
+    if "email" in layout_placements:
+        max_emails = widget_configs.get("email", {}).get("max_emails", 5)
+        email_data = fetch_email_widget_data(
+            api_key, api_provider=api_provider, text_model=text_model,
+            max_emails=max_emails
+        )
+        widget_data.update(email_data)
+
     # ─── Build prompt ───────────────────────────────────────────
     prompt = build_prompt(
         events, characters, prompt_template,
@@ -2258,6 +2436,119 @@ def update_config(config: dict):
     save_config(existing)
     return {"status": "success"}
 
+# ─── Email OAuth Endpoints ──────────────────────────────────────
+
+@app.get("/api/email/status")
+def email_status():
+    """Check if Gmail email integration is available and authorised."""
+    if not GMAIL_AVAILABLE:
+        return {"available": False, "reason": "dependencies_not_installed"}
+    if not os.path.exists(GMAIL_CREDENTIALS_FILE):
+        return {"available": True, "configured": False, "reason": "credentials_file_missing"}
+    creds = _get_gmail_credentials()
+    if creds:
+        return {"available": True, "configured": True, "authorised": True}
+    else:
+        return {"available": True, "configured": True, "authorised": False}
+
+
+@app.get("/api/email/auth-url")
+def email_auth_url(request: Request):
+    """Generate a Google OAuth URL for the user to authorise Gmail access."""
+    if not GMAIL_AVAILABLE:
+        raise HTTPException(status_code=400, detail="Email dependencies not installed. Run: pip install -r requirements-email.txt")
+    if not os.path.exists(GMAIL_CREDENTIALS_FILE):
+        raise HTTPException(status_code=400, detail="Gmail credentials file not found. See EMAIL_SETUP.md for instructions.")
+
+    try:
+        # Determine redirect URI from the request
+        host = request.headers.get("host", "localhost:8000")
+        scheme = request.headers.get("x-forwarded-proto", "http")
+        redirect_uri = f"{scheme}://{host}/api/email/callback"
+
+        flow = Flow.from_client_secrets_file(
+            GMAIL_CREDENTIALS_FILE,
+            scopes=GMAIL_SCOPES,
+            redirect_uri=redirect_uri,
+        )
+        auth_url, _ = flow.authorization_url(
+            access_type="offline",
+            include_granted_scopes="true",
+            prompt="consent",
+        )
+        return {"auth_url": auth_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create auth URL: {e}")
+
+
+@app.get("/api/email/callback")
+def email_callback(request: Request, code: str = None, error: str = None):
+    """OAuth callback that exchanges the authorization code for tokens."""
+    from fastapi.responses import HTMLResponse
+
+    if error:
+        return HTMLResponse(f"""
+            <html><body style="font-family:system-ui;text-align:center;padding:60px;">
+            <h2>❌ Gmail Authorization Failed</h2>
+            <p>{error}</p>
+            <p><a href="/">Return to Glanceboard</a></p>
+            </body></html>
+        """)
+    if not code:
+        return HTMLResponse("""
+            <html><body style="font-family:system-ui;text-align:center;padding:60px;">
+            <h2>❌ No authorization code received</h2>
+            <p><a href="/">Return to Glanceboard</a></p>
+            </body></html>
+        """)
+
+    try:
+        host = request.headers.get("host", "localhost:8000")
+        scheme = request.headers.get("x-forwarded-proto", "http")
+        redirect_uri = f"{scheme}://{host}/api/email/callback"
+
+        flow = Flow.from_client_secrets_file(
+            GMAIL_CREDENTIALS_FILE,
+            scopes=GMAIL_SCOPES,
+            redirect_uri=redirect_uri,
+        )
+        flow.fetch_token(code=code)
+        creds = flow.credentials
+
+        os.makedirs(os.path.dirname(GMAIL_TOKEN_FILE), exist_ok=True)
+        with open(GMAIL_TOKEN_FILE, "w") as f:
+            f.write(creds.to_json())
+
+        print("  ✅ Gmail OAuth completed successfully")
+        return HTMLResponse("""
+            <html><body style="font-family:system-ui;text-align:center;padding:60px;">
+            <h2>✅ Gmail Connected!</h2>
+            <p>You can close this tab and return to Glanceboard.</p>
+            <script>setTimeout(() => window.close(), 2000);</script>
+            </body></html>
+        """)
+    except Exception as e:
+        print(f"  ❌ Gmail OAuth failed: {e}")
+        return HTMLResponse(f"""
+            <html><body style="font-family:system-ui;text-align:center;padding:60px;">
+            <h2>❌ Gmail Authorization Failed</h2>
+            <p>{e}</p>
+            <p><a href="/">Return to Glanceboard</a></p>
+            </body></html>
+        """)
+
+
+@app.post("/api/email/disconnect")
+def email_disconnect():
+    """Remove stored Gmail tokens to disconnect email integration."""
+    try:
+        if os.path.exists(GMAIL_TOKEN_FILE):
+            os.remove(GMAIL_TOKEN_FILE)
+            print("  📧 Gmail token removed")
+        return {"status": "disconnected"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to disconnect: {e}")
+
 @app.post("/api/generate")
 def generate_now(force: bool = False):
     config = load_config()
@@ -2392,6 +2683,15 @@ def preview_prompt():
             api_key, api_provider=api_provider, text_model=text_model,
             stocks_symbols=stocks_symbols, sports_team=sports_team
         )
+
+    # ─── Fetch email widget data (optional) ──────────────────────
+    if "email" in layout_placements and api_key:
+        max_emails = widget_configs.get("email", {}).get("max_emails", 5)
+        email_data = fetch_email_widget_data(
+            api_key, api_provider=api_provider, text_model=text_model,
+            max_emails=max_emails
+        )
+        widget_data.update(email_data)
 
     prompt = build_prompt(
         events, characters, prompt_template,

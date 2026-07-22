@@ -11,6 +11,8 @@ functions/.env
 # Self-hosters: copy config.example.js → config.js
 web/src/config.js
 server/data/config.json
+server/data/gmail_credentials.json
+server/data/gmail_token.json
 
 # ─── Generated Data ────────────────────────────────────
 server/data/images/

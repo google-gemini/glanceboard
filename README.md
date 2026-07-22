@@ -53,7 +53,7 @@ No soldering. No ribbon cables. Just one display and a server.
 - **AI-generated daily art** — Your calendar events become illustrated daily planners
 - **6 art styles** — Pen-and-ink, fashion sketch, watercolour, pixel art, comic book, and Japanese sumi-e
 - **Custom characters** — Add people and pets with reference photos for consistency
-- **Drag-and-drop widgets** — Add sports scores, stock tickers, news, daily quotes, weather, and more to your display layout
+- **Drag-and-drop widgets** — Add sports scores, stock tickers, news, daily quotes, email digest, weather, and more to your display layout
 - **Google Calendar** — Connect via iCal URL (any calendar that exports iCal works — Google, Outlook, Apple)
 - **Weather-aware** — Shows weather on the display; characters dress for the actual conditions
 - **Location-aware** — Uses your location to generate regionally accurate scenes (no snow in Sydney!)
@@ -62,6 +62,7 @@ No soldering. No ribbon cables. Just one display and a server.
 - **E-ink ready** — Floyd-Steinberg dithered for 6-colour Spectra panels
 - **Smart scheduling** — Auto-generates at your chosen times, only when your calendar or weather changes
 - **Custom prompts** — Edit the image generation prompt template
+- **Email digest** — Optional Gmail integration shows unread email summaries ([setup required](EMAIL_SETUP.md))
 - **Fully local** — Runs on your own machine, no cloud account required
 
 ---
@@ -215,9 +216,12 @@ glanceboard/
 ├── server/                     # Local Python server (FastAPI)
 │   ├── app.py                  # All backend logic + API endpoints
 │   ├── requirements.txt        # Python dependencies
+│   ├── requirements-email.txt  # Optional email widget dependencies
 │   └── data/                   # Runtime data (gitignored)
 │       ├── config.json          # Your settings (gitignored)
 │       ├── config.example.json  # Template config
+│       ├── gmail_credentials.json # Gmail OAuth credentials (gitignored, optional)
+│       ├── gmail_token.json     # Gmail OAuth token (gitignored, optional)
 │       └── images/              # Generated display images (gitignored)
 ├── web/                        # Frontend (Vite SPA)
 │   ├── index.html              # Dashboard + landing page
@@ -239,26 +243,39 @@ glanceboard/
 ├── storage.rules               # Storage security rules (hosted version)
 ├── firebase.json               # Firebase config (hosted version)
 ├── SELF_HOSTING.md             # Firebase self-hosting guide
+├── EMAIL_SETUP.md              # Optional email widget setup guide
 └── LICENSE                     # CC BY-NC 4.0
 ```
 
 ---
 
+## Email widget (optional)
+
+Glanceboard can optionally show a summary of your unread Gmail on the display. This requires setting up your own Google Cloud OAuth credentials — see **[EMAIL_SETUP.md](EMAIL_SETUP.md)** for step-by-step instructions.
+
+The email widget:
+- Only reads subject lines and sender names (not email bodies)
+- Summarises them via Gemini into a short digest
+- Runs entirely on your own machine — no data leaves your server
+- Is completely optional — everything else works without it
+
+---
+
 ## Contributing
 
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-thing`)
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute and the Contributor License Agreement (CLA) process.
 
 ---
 
 ## License
 
-[CC BY-NC 4.0](LICENSE) — free to use, fork, and modify for non-commercial purposes. For commercial licensing, contact the author.
+[Apache 2.0 License](LICENSE) — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Disclaimer
+
+This is not an officially supported Google product.
 
 ---
 
