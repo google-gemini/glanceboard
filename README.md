@@ -10,7 +10,7 @@ No screens. No notifications. Just a quiet picture frame that helps you know wha
 
 **Note:** This demo was entirely vibe coded with Google Antigravity and uses off the shelf hardware.
 
-![Glanceboard on an e-ink display](web/public/display.jpg
+![Glanceboard on an e-ink display](web/public/display.jpg)
 
 ---
 
