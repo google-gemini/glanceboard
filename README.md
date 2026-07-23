@@ -1,6 +1,6 @@
 # Glanceboard Demo
 
-**Glanceboard is an e-ink display that helps you start your day built with Gemini**
+**Glanceboard is an e-ink display that helps you start your day, built with Gemini**
 
 This demo showcases how to use Gemini 3.6 Flash and Nano Banana to turn your Google Calendar into art on an e-ink display.
 
