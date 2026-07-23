@@ -20,7 +20,7 @@ Glanceboard runs a lightweight local server on your computer (or a Raspberry Pi)
 
 1. Reads your calendar events via iCal URL (universal standard for calendar data .ics file)
 2. Fetches the current weather for your location
-3. Builds a creative prompt with your family's characters
+3. Builds a creative prompt for your characters
 4. Generates an illustrated daily planner image from the above using Nano Banana
 5. Dithers the image for 6-colour e-ink and serves it to your display
 
