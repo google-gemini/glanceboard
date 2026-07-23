@@ -1,0 +1,6 @@
+# Optional dependencies for the Email widget
+# Install with: pip install -r requirements-email.txt
+# See EMAIL_SETUP.md in the project root for full setup instructions.
+google-auth-oauthlib
+google-api-python-client
+google-auth-httplib2

@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+requests
+Pillow
+numpy
+apscheduler
+icalendar
+recurring-ical-events
+pytz
+tzdata

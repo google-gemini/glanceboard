@@ -1,0 +1,76 @@
+rules_version = '2';
+
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Per-user data ───────────────────────────────────────
+    // Each user's data lives under users/{uid}/
+    // Only the owning user can read/write their own subtree.
+
+    match /users/{uid} {
+
+      // User profile (created on first login)
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // Settings: API key, iCal URL, model selection, etc.
+      // Users can read/write their own config, prompt, and status.
+      match /settings/{settingId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        // google_tokens and important_events are written by Cloud Functions
+        // (admin SDK) only. Users can write all other settings docs.
+        allow write: if request.auth != null && request.auth.uid == uid
+                     && settingId != 'google_tokens'
+                     && settingId != 'important_events';
+      }
+
+      // Characters: kids, extras with descriptions and reference images
+      match /characters/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // Devices: per-display settings, prompts, and status
+      match /devices/{deviceId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+
+        match /{document=**} {
+          allow read, write: if request.auth != null && request.auth.uid == uid;
+        }
+      }
+    }
+
+    // ─── Device registry ───────────────────────────────────────
+    // Maps device_id → owner for the workshop self-provisioning flow.
+    // Authenticated users can read any device and write their own.
+    match /devices/{devId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+                    && resource.data.owner_uid == request.auth.uid;
+    }
+
+    // ─── System config (read-only for users) ───────────────────
+    // Model list updated weekly by Cloud Functions.
+    match /system/{docId} {
+      allow read: if request.auth != null;
+    }
+
+    // ─── Deny everything else ────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

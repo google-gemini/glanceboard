@@ -1,0 +1,113 @@
+<!--
+  Copyright 2026 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Glanceboard</title>
+  <meta name="description" content="Glanceboard privacy policy — how we handle your data.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #F0F0F0; color: #1a1a1a;
+      line-height: 1.7; padding: 40px 20px;
+    }
+    .container {
+      max-width: 720px; margin: 0 auto;
+      background: #fff; border: 1px solid #D0D0D0;
+      padding: 48px; border-radius: 0;
+    }
+    .back { display: inline-block; margin-bottom: 24px; color: #0088CC; text-decoration: none; font-size: 14px; }
+    .back:hover { text-decoration: underline; }
+    h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+    .updated { font-size: 13px; color: #666; margin-bottom: 32px; }
+    h2 { font-size: 16px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; }
+    p, li { font-size: 14px; color: #4a4a4a; margin-bottom: 12px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    a { color: #0088CC; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back">← Back to Glanceboard</a>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: July 2026</p>
+
+    <h2>What Glanceboard Does</h2>
+    <p>Glanceboard is a service that reads your Google Calendar events and generates AI-illustrated daily planner images for display on an e-ink screen. This policy explains what data we access, how we use it, and how we protect it.</p>
+
+    <h2>Data We Access</h2>
+    <ul>
+      <li><strong>Google Calendar events</strong> — We access your calendar in read-only mode to retrieve event titles, times, and dates. We never modify, create, or delete any calendar data.</li>
+      <li><strong>Account information</strong> — Your email address and display name (from Google Sign-In) to identify your account.</li>
+      <li><strong>Location</strong> — An approximate city/suburb you provide manually, used to fetch weather data and generate location-appropriate scenes.</li>
+      <li><strong>Character photos</strong> — Reference photos you optionally upload to help AI generate consistent character likenesses.</li>
+    </ul>
+
+    <h2>How We Use Your Data</h2>
+    <ul>
+      <li><strong>Image generation</strong> — Calendar events and weather are sent to an AI image generation API (Google Gemini or OpenRouter, depending on your configuration) to create illustrated daily planners.</li>
+      <li><strong>Display delivery</strong> — Generated images are stored in Firebase Storage so your e-ink display can fetch them.</li>
+      <li><strong>No selling or sharing</strong> — We do not sell, rent, or share your personal data with third parties for marketing or advertising purposes.</li>
+    </ul>
+
+    <h2>Data Storage</h2>
+    <ul>
+      <li>Account settings and calendar tokens are stored in Google Cloud Firestore.</li>
+      <li>Generated images are stored in Firebase Storage.</li>
+      <li>Character reference photos are stored in Firebase Storage, accessible only to your account.</li>
+      <li>All data is hosted on Google Cloud infrastructure in the Australia (Sydney) region.</li>
+    </ul>
+
+    <h2>Third-Party Services</h2>
+    <ul>
+      <li><strong>Google Cloud / Firebase</strong> — Hosting, authentication, database, and file storage.</li>
+      <li><strong>Google Gemini / OpenRouter</strong> — AI image generation. Calendar event titles and weather data are sent to generate images. No personal identifiers are included in these requests.</li>
+      <li><strong>Open-Meteo</strong> — Weather data based on your provided location coordinates.</li>
+    </ul>
+
+    <h2>Google API Scopes</h2>
+    <p>Glanceboard requests the following Google OAuth scopes:</p>
+    <ul>
+      <li><code>calendar.readonly</code> — Read-only access to your Google Calendar, used to display your events on the e-ink display.</li>
+      <li><code>calendar.events</code> — Write access to your Google Calendar, used only by the Email Scanner feature to add discovered events to your calendar.</li>
+      <li><code>gmail.readonly</code> — Read-only access to your Gmail, used only by the Email Scanner feature. When enabled, Glanceboard reads emails matching your configured topics and sends them to Google's Gemini API to identify calendar events. Email content is processed in-memory and not stored.</li>
+    </ul>
+
+    <h2>Data Retention</h2>
+    <p>Your data is retained for as long as your account is active. Generated images are archived but you can delete them at any time from your dashboard. If you delete your account, all associated data (settings, characters, images) will be permanently removed.</p>
+
+    <h2>Your Rights</h2>
+    <ul>
+      <li>You can disconnect your Google Calendar at any time from Settings.</li>
+      <li>You can delete individual characters and their photos.</li>
+      <li>You can delete your account and all associated data.</li>
+      <li>You can revoke Glanceboard's access to your Google Account at <a href="https://myaccount.google.com/permissions" target="_blank">myaccount.google.com/permissions</a>.</li>
+    </ul>
+
+    <h2>Security</h2>
+    <p>We use Firebase Authentication for secure sign-in, Firestore security rules to restrict data access to account owners, and HTTPS for all data in transit. Generated display images are publicly readable by URL (so your e-ink display can fetch them without authentication), but the URLs are unguessable and not indexed.</p>
+
+    <h2>Contact</h2>
+    <p>If you have questions about this policy, contact us at <a href="mailto:hello@glanceboard.com">hello@glanceboard.com</a>.</p>
+  </div>
+</body>
+</html>
