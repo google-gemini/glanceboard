@@ -1,22 +1,16 @@
-# Glanceboard
+# Glanceboard Demo
 
-**A daily calendar your kids actually look at.**
+**Glanceboard is an e-ink display that helps you start your day built with Gemini**
 
-Glanceboard turns your Google Calendar into AI-generated art on an e-ink display. No screens. No notifications. Just a quiet picture frame that helps your family know what's happening today.
+This demo showcases how to use Gemini 3.6 Flash and Nano Banana to turn your Google Calendar into art on an e-ink display.
 
-![Glanceboard on an e-ink display](web/public/display.jpg)
+Using just a computer and an iCal feed, Glanceboard transforms your schedule, local weather, and custom family characters into Nano Banana generated art. Every morning, it reads your calendar and generates a fresh illustration so you know what's happening today, what to pack, and what to wear.
 
----
+No screens. No notifications. Just a quiet picture frame that helps you know what's happening today.
 
-## Why I built this
+**Note:** This demo was entirely vibe coded with Google Antigravity and uses off the shelf hardware.
 
-I wanted to empower my kids to be more independent in the mornings — to know what's on today, what to pack in their bags, what to wear without asking and without giving them a screen to check.
-
-I couldn't find anything that did this well, so I built Glanceboard. It reads our family calendar and generates a new illustrated scene every morning with the day's events, weather, and our characters on it.
-
-My kids love it. They get excited every morning to see what the picture looks like and read what's coming up. It's become part of our routine.
-
-It uses AI image generation, so sometimes the pictures do weird things. The kids think that's funny. So do I.
+![Glanceboard on an e-ink display](web/public/display.jpg
 
 ---
 
@@ -24,10 +18,10 @@ It uses AI image generation, so sometimes the pictures do weird things. The kids
 
 Glanceboard runs a lightweight local server on your computer (or a Raspberry Pi). Every few hours, it:
 
-1. Reads your calendar events via iCal URL
+1. Reads your calendar events via iCal URL (universal standard for calendar data .ics file)
 2. Fetches the current weather for your location
 3. Builds a creative prompt with your family's characters
-4. Generates an illustrated daily planner using Gemini
+4. Generates an illustrated daily planner image from the above using Nano Banana
 5. Dithers the image for 6-colour e-ink and serves it to your display
 
 The display polls the server for new images — no cloud account needed.
@@ -36,11 +30,11 @@ The display polls the server for new images — no cloud account needed.
 
 ## What you need
 
-| Part | Description | Price |
-|------|-------------|-------|
-| [**Waveshare ESP32-S3 PhotoPainter**](https://www.waveshare.com/esp32-s3-touch-lcd-7.htm) | 7.3" colour e-ink display in a wooden frame with built-in WiFi | ~$90 |
-| **USB-C cable** | For power (or use an optional lithium battery) | ~$5 |
-| **A computer or Pi** | To run the Glanceboard server (anything that runs Python) | — |
+| Part | Description |
+|------|-------------|
+| [**Waveshare ESP32-S3 PhotoPainter**](https://www.waveshare.com/esp32-s3-photopainter.htm) | 7.3" colour e-ink display in a wooden frame with built-in WiFi |
+| **USB-C cable** | For power (or use an optional lithium battery) |
+| **A computer or Pi** | To run the Glanceboard server (anything that runs Python) |
 
 No soldering. No ribbon cables. Just one display and a server.
 
@@ -50,11 +44,11 @@ No soldering. No ribbon cables. Just one display and a server.
 
 ## Features
 
-- **AI-generated daily art** — Your calendar events become illustrated daily planners
+- **Daily Nano Banana art** — Your calendar events become illustrated daily planners
 - **6 art styles** — Pen-and-ink, fashion sketch, watercolour, pixel art, comic book, and Japanese sumi-e
 - **Custom characters** — Add people and pets with reference photos for consistency
 - **Drag-and-drop widgets** — Add sports scores, stock tickers, news, daily quotes, email digest, weather, and more to your display layout
-- **Google Calendar** — Connect via iCal URL (any calendar that exports iCal works — Google, Outlook, Apple)
+- **Google Calendar** — Connect via iCal URL (any calendar that exports iCal works)
 - **Weather-aware** — Shows weather on the display; characters dress for the actual conditions
 - **Location-aware** — Uses your location to generate regionally accurate scenes (no snow in Sydney!)
 - **Smart countdowns** — AI scans your calendar for birthdays, trips, and holidays to count down to
@@ -115,12 +109,12 @@ See [Display setup guide](#display-setup-guide) below to flash and connect your 
 
 Glanceboard works with a range of AI image generation models:
 
-| Model | Provider | Est. Cost/Image | Notes |
-|-------|----------|-----------------|-------|
-| **Gemini 3 Pro** | Google AI Studio | ~$0.04 | **Recommended.** Best quality, great text rendering and character consistency. |
-| **Gemini Flash 3.6** | Google AI Studio | ~$0.01 | Fast, intelligent and economical. |
+| Model | Provider | Notes |
+|-------|----------|-------|
+| **Nano Banana Pro** | Gemini API | **Recommended.** Best quality, text rendering, and character consistency. |
+| **Nano Banana 2** | Gemini API | Balances speed with quality |
 
-Glanceboard also uses **Gemini Flash 3.6** (pennies per month) for text intelligence:
+Glanceboard also uses **Gemini Flash 3.6** for intelligence:
 - Rewriting calendar events into friendly language
 - Generating weather-accurate scene descriptions
 - Scanning calendars for important upcoming events
@@ -129,7 +123,7 @@ Glanceboard also uses **Gemini Flash 3.6** (pennies per month) for text intellig
 
 ## API key setup
 
-Glanceboard needs a **Google AI Studio API key** to generate images. This is the only ongoing cost (~$1–3/month).
+Glanceboard requires a **Gemini API key** to generate images.
 
 1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 2. Click **Create API Key** → select your Google Cloud project (or create one)
@@ -198,7 +192,7 @@ Local Server (FastAPI on Python 3.11+)
          │                              │
          ▼                              ▼
   ESP32-S3 PhotoPainter         AI Provider
-  polls /images/latest_*        Google AI Studio
+  polls /images/latest_*        Gemini API
   updates e-ink display         (Gemini Flash / Pro)
 
   Gemini Flash 3.6
@@ -279,4 +273,4 @@ This is not an officially supported Google product.
 
 ---
 
-Built with ❤️ by [Raph Dixon](https://raph.plus) using [Antigravity](https://deepmind.google/technologies/antigravity/) and Gemini Flash 3.6.
+Built with ❤️ by [Raph Dixon](https://raph.plus) using [Antigravity](https://antigravity.google/) and [Gemini Flash 3.6](https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash).
