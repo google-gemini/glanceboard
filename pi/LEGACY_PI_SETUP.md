@@ -52,7 +52,7 @@ ssh pi@glanceboard.local
 Then:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/raphdixon/glanceboard/main/pi/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/google-gemini/glanceboard/main/pi/install.sh | bash
 ```
 
 When prompted, paste your **Display Image URL** from the Glanceboard dashboard:

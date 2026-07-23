@@ -83,7 +83,7 @@ firebase functions:secrets:set GOOGLE_CLIENT_SECRET
 
 ```bash
 # Clone the repo
-git clone https://github.com/raphdixon/glanceboard.git
+git clone https://github.com/google-gemini/glanceboard.git
 cd glanceboard
 
 # Copy the config template

@@ -66,7 +66,7 @@ No soldering. No ribbon cables. Just one display and a server.
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/raphdixon/glanceboard.git
+git clone https://github.com/google-gemini/glanceboard.git
 cd glanceboard
 
 # Install server dependencies

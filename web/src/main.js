@@ -1111,7 +1111,7 @@ async function _loadEmailConfigPanel(widgetKey) {
         <p class="help-text" style="color:var(--warning)">⚠️ Email dependencies not installed</p>
         <p class="help-text">Run this in your <code>server/</code> directory:</p>
         <pre style="background:var(--bg-tertiary);padding:12px;border-radius:8px;font-size:13px;overflow-x:auto;">pip install -r requirements-email.txt</pre>
-        <p class="help-text">Then restart the server. See <a href="https://github.com/raphdixon/glanceboard/blob/main/EMAIL_SETUP.md" target="_blank" style="color:var(--accent)">EMAIL_SETUP.md</a> for full instructions.</p>
+        <p class="help-text">Then restart the server. See <a href="https://github.com/google-gemini/glanceboard/blob/main/EMAIL_SETUP.md" target="_blank" style="color:var(--accent)">EMAIL_SETUP.md</a> for full instructions.</p>
       `;
       return;
     }
@@ -1120,7 +1120,7 @@ async function _loadEmailConfigPanel(widgetKey) {
       container.innerHTML = `
         <p class="help-text" style="color:var(--warning)">⚠️ Gmail credentials not found</p>
         <p class="help-text">You need to create Google OAuth credentials and save them as <code>server/data/gmail_credentials.json</code>.</p>
-        <p class="help-text">See <a href="https://github.com/raphdixon/glanceboard/blob/main/EMAIL_SETUP.md" target="_blank" style="color:var(--accent)">EMAIL_SETUP.md</a> for step-by-step instructions.</p>
+        <p class="help-text">See <a href="https://github.com/google-gemini/glanceboard/blob/main/EMAIL_SETUP.md" target="_blank" style="color:var(--accent)">EMAIL_SETUP.md</a> for step-by-step instructions.</p>
       `;
       return;
     }
@@ -1148,7 +1148,7 @@ async function _loadEmailConfigPanel(widgetKey) {
     } else {
       container.innerHTML = `
         <p class="help-text">Connect your Gmail account to show an email digest on your display.</p>
-        <p class="help-text" style="font-size:12px;opacity:0.7;">Only subject lines and sender names are read. See <a href="https://github.com/raphdixon/glanceboard/blob/main/EMAIL_SETUP.md" target="_blank" style="color:var(--accent)">EMAIL_SETUP.md</a> for details.</p>
+        <p class="help-text" style="font-size:12px;opacity:0.7;">Only subject lines and sender names are read. See <a href="https://github.com/google-gemini/glanceboard/blob/main/EMAIL_SETUP.md" target="_blank" style="color:var(--accent)">EMAIL_SETUP.md</a> for details.</p>
         <button id="cfg-email-connect" class="btn btn-primary" style="margin-top:12px;width:100%;">Connect Gmail</button>
       `;
       $("#cfg-email-connect")?.addEventListener("click", async () => {

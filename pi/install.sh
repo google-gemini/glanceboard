@@ -17,7 +17,7 @@
 # Glanceboard — One-Line Pi Installer
 #
 # Run this on your Raspberry Pi after first boot:
-#   curl -sSL https://raw.githubusercontent.com/raphdixon/glanceboard/main/pi/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/google-gemini/glanceboard/main/pi/install.sh | bash
 #
 # This script will:
 #   1. Download the Glanceboard Pi files from GitHub
@@ -56,7 +56,7 @@ FILES=(
     "pi/eink-display.service"
 )
 
-REPO_URL="https://raw.githubusercontent.com/raphdixon/glanceboard/main"
+REPO_URL="https://raw.githubusercontent.com/google-gemini/glanceboard/main"
 
 for file in "${FILES[@]}"; do
     filename=$(basename "$file")
@@ -157,7 +157,7 @@ CURRENT_USER=$(whoami)
 cat > "/tmp/eink-display.service" << EOF
 [Unit]
 Description=Glanceboard E-Ink Display Updater
-Documentation=https://github.com/raphdixon/glanceboard
+Documentation=https://github.com/google-gemini/glanceboard
 After=network-online.target
 Wants=network-online.target
 
@@ -255,7 +255,7 @@ echo "  Check status:     sudo systemctl status eink-display.timer"
 echo "  View logs:        journalctl -u eink-display -f"
 echo "  Update now:       sudo systemctl start eink-display"
 echo "  Change URL:       nano ~/.glanceboard.conf"
-echo "  Reinstall:        curl -sSL https://raw.githubusercontent.com/raphdixon/glanceboard/main/pi/install.sh | bash"
+echo "  Reinstall:        curl -sSL https://raw.githubusercontent.com/google-gemini/glanceboard/main/pi/install.sh | bash"
 echo ""
 echo -e "Now go to your Glanceboard dashboard and click ${BOLD}\"🎨 Generate Now\"${NC} to create your first image!"
 echo ""
