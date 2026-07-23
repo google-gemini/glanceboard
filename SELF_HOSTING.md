@@ -145,23 +145,6 @@ See the full [Firmware & Display Setup Guide](firmware/README.md) for detailed i
 
 ---
 
-## Cost Estimates
-
-With the Firebase free tier and Google AI Studio:
-
-| Service | Free Tier | Typical Monthly Cost |
-|---------|-----------|---------------------|
-| Firebase Auth | 10K users free | $0 |
-| Firestore | 50K reads/day free | $0 |
-| Firebase Storage | 5GB free | $0 |
-| Cloud Functions | 2M invocations free | $0 |
-| Firebase Hosting | 10GB free | $0 |
-| **Google AI Studio** | Varies | **~$1-3** (2 images/day) |
-
-**Total estimated cost: ~$1-3/month** (just the AI image generation API).
-
----
-
 ## Updating
 
 ```bash

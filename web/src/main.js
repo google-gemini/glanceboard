@@ -627,20 +627,6 @@ async function loadDashboard() {
         }
       } catch (e) { /* non-critical */ }
 
-      // Estimate monthly cost
-      const modelCosts = {
-        "google/gemini-2.5-flash-image": 0.02,
-        "google/gemini-3.1-flash-image": 0.03,
-        "google/gemini-3-pro-image": 0.08,
-        "openai/gpt-image-1-mini": 0.02,
-        "openai/gpt-image-1": 0.04,
-        "openai/gpt-image-2": 0.07,
-        "black-forest-labs/flux.2-klein-4b": 0.02,
-        "black-forest-labs/flux.2-pro": 0.05,
-      };
-      const costPer = modelCosts[model] || 0.03;
-      const monthly = (costPer * 2 * 30).toFixed(2);
-      $("#stat-cost").textContent = `~$${monthly}/mo (${costPer * 100}¢/img × 2/day)`;
 
       // Load chars count
       const charsSnap = await getDocs(
@@ -1810,26 +1796,7 @@ $("#setting-geocode-btn")?.addEventListener("click", async () => {
   }
 });
 
-// Model cost info
-function updateModelCostInfo() {
-  const costs = {
-    "google/gemini-2.5-flash-image": 0.02,
-    "google/gemini-3.1-flash-image": 0.03,
-    "google/gemini-3-pro-image": 0.08,
-    "openai/gpt-image-1-mini": 0.02,
-    "openai/gpt-image-1": 0.04,
-    "openai/gpt-image-2": 0.07,
-    "black-forest-labs/flux.2-klein-4b": 0.02,
-    "black-forest-labs/flux.2-pro": 0.05,
-  };
-  const model = $("#setting-model")?.value;
-  const cost = costs[model] || 0.03;
-  const monthly = (cost * 2 * 30).toFixed(2);
-  const info = $("#model-cost-info");
-  if (info) info.textContent = `~$${cost * 100}¢/image • 2 images/day = ~$${monthly}/month`;
-}
 
-$("#setting-model")?.addEventListener("change", updateModelCostInfo);
 
 // Save Settings
 // Copy Pi URL

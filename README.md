@@ -130,7 +130,7 @@ Glanceboard requires a **Gemini API key** to generate images.
 3. Copy the key (starts with `AIza...`)
 4. Paste it into the Glanceboard dashboard during onboarding
 
-> **That's it.** The key is stored locally in your `server/data/config.json` file and used server-side to call the Gemini API. You are billed directly by Google for API usage.
+> **That's it.** The key is stored locally in your `server/data/config.json` file and used server-side to call the Gemini API.
 
 ---
 
