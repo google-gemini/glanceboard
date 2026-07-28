@@ -1264,7 +1264,7 @@ def generate_image_via_openrouter(prompt, api_key, model, reference_image_urls=N
     return None
 
 
-def generate_image_via_google_ai(prompt, api_key, model="gemini-2.5-flash-image", reference_image_urls=None):
+def generate_image_via_google_ai(prompt, api_key, model="gemini-3-pro-image", reference_image_urls=None):
     """Call Google AI Studio (Gemini API) to generate an image.
 
     Uses the generateContent endpoint with responseModalities=["IMAGE", "TEXT"].
@@ -1447,7 +1447,7 @@ def _generate_for_device(uid, device_id, db, force=False):
             legacy = user_ref.collection("settings").document("config").get()
             device = legacy.to_dict() if legacy.exists else {}
 
-    model = device.get("image_model", "gemini-2.5-flash-image")
+    model = device.get("image_model", "gemini-3-pro-image")
     characters_enabled = device.get("characters_enabled", True)
     calendar_id = device.get("calendar_id", account.get("calendar_id", "primary"))
     aesthetic = device.get("aesthetic", "whimsical")
@@ -2205,7 +2205,7 @@ def create_device(req: https_fn.CallableRequest):
     device_data = {
         "name": name,
         "aesthetic": aesthetic,
-        "image_model": "google/gemini-2.5-flash-image",
+        "image_model": "google/gemini-3-pro-image",
         "characters_enabled": True,
         "calendar_id": "primary",
         "selected_characters": [],  # Empty = use all characters
@@ -2487,7 +2487,7 @@ def claim_workshop_board(req: https_fn.CallableRequest):
     device_ref.set({
         "name": board_data.get("board_name", "Workshop Board"),
         "aesthetic": "whimsical",
-        "image_model": "google/gemini-2.5-flash-image",
+        "image_model": "google/gemini-3-pro-image",
         "characters_enabled": True,
         "calendar_id": "primary",
         "selected_characters": [],

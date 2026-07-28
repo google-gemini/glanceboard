@@ -586,24 +586,37 @@
             <h3>📺 E-Ink Display Setup</h3>
             <div class="form-group">
               <label for="setting-pi-url">Display Image URL</label>
-              <input type="text" id="setting-pi-url" placeholder="https://firebasestorage.googleapis.com/...">
-              <p class="help-text">Auto-generated from your account. Your PhotoPainter fetches this URL to update the display.</p>
+              <input type="text" id="setting-pi-url" placeholder="http://your-server-ip:8000/images/latest_display.bmp">
+              <p class="help-text">Auto-generated from your account. Copy this URL and paste it into your e-ink display's settings.</p>
               <div class="btn-row" style="margin-top: 8px;">
                 <button id="copy-pi-url" class="btn btn-secondary" type="button">📋 Copy URL</button>
                 <button id="reset-pi-url" class="btn btn-ghost" type="button">↺ Reset to default</button>
               </div>
             </div>
             <div class="pi-setup-guide">
-              <p class="step-desc">To connect your ESP32-S3 PhotoPainter display:</p>
+              <p class="step-desc"><strong>How to connect your Waveshare ESP32-S3 PhotoPainter:</strong></p>
               <ol class="setup-steps">
                 <li>Flash the firmware using the <a href="https://aitjcize.github.io/esp32-photoframe/#flash" target="_blank">web flasher</a> in Chrome</li>
                 <li>Scan the QR code on the device to connect it to your WiFi</li>
-                <li>Go to <a href="http://photoframe.local" target="_blank">photoframe.local</a> → Settings → Auto Rotate tab</li>
-                <li>Enable Auto-Rotate, set Rotation Mode to <strong>Fetch image from URL</strong></li>
-                <li>Paste your Display Image URL (above) and set a wake schedule</li>
-                <li>Save — the display will fetch new images automatically ✨</li>
+                <li>Go to <a href="http://photoframe.local" target="_blank">photoframe.local</a> → Settings → <strong>Auto Rotate</strong> tab</li>
+                <li>Enable <strong>Auto-Rotate</strong> and set <strong>Rotation Mode</strong> to <strong>URL - Fetch image from URL</strong></li>
+                <li>Paste the <strong>Display Image URL</strong> (copied above with 📋 Copy URL) into the <strong>Image URL</strong> field</li>
+                <li>Set a wake schedule (e.g. every 12 hours) and click <strong>Save</strong></li>
               </ol>
-              <p class="help-text" style="margin-top: 8px;">Using a Raspberry Pi instead? See the <a href="https://github.com/google-gemini/glanceboard/blob/main/pi/LEGACY_PI_SETUP.md" target="_blank">legacy Pi setup guide</a>.</p>
+              <div class="guide-screenshots" style="margin-top: 16px;">
+                <p class="help-text" style="margin-bottom: 10px;">Here's what the Waveshare display settings look like:</p>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                  <div class="guide-screenshot-item">
+                    <img src="waveshare-auto-rotate.png" alt="Waveshare Auto Rotate settings showing the schedule configuration" loading="lazy">
+                    <p class="help-text" style="text-align: center; margin-top: 6px; font-size: 12px;">Enable Auto-Rotate and set a schedule</p>
+                  </div>
+                  <div class="guide-screenshot-item">
+                    <img src="waveshare-fetch-url.png" alt="Waveshare Fetch URL settings showing the Image URL field where you paste your Glanceboard URL" loading="lazy">
+                    <p class="help-text" style="text-align: center; margin-top: 6px; font-size: 12px;">Set Rotation Mode to "URL" and paste your URL here</p>
+                  </div>
+                </div>
+              </div>
+              <p class="help-text" style="margin-top: 12px;">Using a Raspberry Pi instead? See the <a href="https://github.com/google-gemini/glanceboard/blob/main/pi/LEGACY_PI_SETUP.md" target="_blank">legacy Pi setup guide</a>.</p>
             </div>
             <button id="save-settings-btn" class="btn btn-primary">Save Settings</button>
           </div>
@@ -622,7 +635,6 @@
           </div>
 
         </div>
-      </main>
 
 
 
@@ -682,11 +694,24 @@
                 <li>Go to <a href="http://photoframe.local" target="_blank"><strong>photoframe.local</strong></a> in your browser (or scan the QR code — but a computer is easier)</li>
                 <li>Scroll down to <strong>Settings</strong> and click the <strong>Auto Rotate</strong> tab</li>
                 <li>Enable <strong>Auto-Rotate</strong></li>
-                <li>Under <strong>Rotation Mode</strong>, select <strong>Fetch image from URL</strong></li>
-                <li>Paste your Display Image URL from your Glanceboard dashboard (found in <strong>Settings → E-Ink Display Setup → 📋 Copy URL</strong>)</li>
-                <li>Set a <strong>wake schedule</strong> to control how often the display refreshes</li>
+                <li>Under <strong>Rotation Mode</strong>, select <strong>URL - Fetch image from URL</strong></li>
+                <li>Copy the URL from <strong>Settings → E-Ink Display Setup → 📋 Copy URL</strong> in the Glanceboard dashboard and paste it into the <strong>Image URL</strong> field on the display</li>
+                <li>Set a <strong>wake schedule</strong> (e.g. every 12 hours) to control how often the display refreshes</li>
                 <li>Click <strong>Save</strong></li>
               </ol>
+              <div class="guide-screenshots" style="margin-top: 16px;">
+                <p class="help-text" style="margin-bottom: 10px;">Here's what the Waveshare display settings look like:</p>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                  <div class="guide-screenshot-item">
+                    <img src="waveshare-auto-rotate.png" alt="Waveshare Auto Rotate settings — enable Auto-Rotate and set a schedule" loading="lazy">
+                    <p class="help-text" style="text-align: center; margin-top: 6px; font-size: 12px;">Enable Auto-Rotate and set a schedule</p>
+                  </div>
+                  <div class="guide-screenshot-item">
+                    <img src="waveshare-fetch-url.png" alt="Waveshare URL settings — set Rotation Mode to URL and paste your Glanceboard URL" loading="lazy">
+                    <p class="help-text" style="text-align: center; margin-top: 6px; font-size: 12px;">Set Rotation Mode to "URL" and paste your URL here</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -723,6 +748,7 @@
           </div>
         </div>
       </div>
+      </main>
     </div>
   </div>
 

@@ -1,175 +1,241 @@
+<!--
+Copyright 2026 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the Apache License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Self-Hosting Guide
 
-Run your own instance of Glanceboard. This guide covers deploying to Firebase (the easiest path), but the backend is just Python Flask endpoints and the frontend is a static Vite SPA — you could adapt it to run locally, on a VPS, or any cloud platform you prefer.
+Run Glanceboard on your own server — a Raspberry Pi, old laptop, or any always-on machine on your home network. No cloud, no subscription, no Firebase.
 
 ---
 
-## Prerequisites
+## Quick version
 
-- A Google account
-- [Node.js](https://nodejs.org/) 18+ installed
-- [Python 3.11+](https://www.python.org/) installed
-- A credit card (Firebase Blaze plan is pay-as-you-go; the free tier covers most usage)
+If you've already followed the [Quick Start](README.md#quick-start) and have Glanceboard running, you just need to keep it running permanently:
 
----
-
-## Step 1: Create a Firebase Project
-
-1. Go to [console.firebase.google.com](https://console.firebase.google.com/)
-2. Click **Add Project** → Name it (e.g., `my-glanceboard`)
-3. Disable Google Analytics (optional, not needed)
-4. Click **Create Project**
-
-### Upgrade to Blaze Plan
-Cloud Functions require the Blaze (pay-as-you-go) plan. Don't worry — there's a generous free tier:
-1. In the Firebase console, click ⚙️ → **Usage and billing** → **Details & settings**
-2. Click **Upgrade** → **Blaze**
-3. Add a payment method
-
-### Enable Services
-1. **Authentication** → Get Started → Enable **Google** sign-in provider → Save
-2. **Firestore Database** → Create Database → Start in production mode → Select your region
-3. **Storage** → Get Started → Start in production mode
-4. **Functions** → Get Started (will be set up via CLI)
-
----
-
-## Step 2: Get Your Firebase Config
-
-1. In the Firebase console, click ⚙️ → **Project Settings**
-2. Scroll to **Your apps** → Click **Web** (</>) → Register app
-3. Copy the `firebaseConfig` object — you'll need these values
-
----
-
-## Step 3: Set Up Google Calendar OAuth
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Select your Firebase project
-3. Go to **APIs & Services** → **Credentials**
-4. Click **Create Credentials** → **OAuth 2.0 Client ID**
-   - Application type: **Web application**
-   - Name: `Glanceboard Calendar`
-   - Authorized JavaScript origins: `http://localhost:5173` (dev) + your production domain
-   - Authorized redirect URIs: Same as origins
-5. Copy the **Client ID** and **Client Secret**
-
-### Enable the Calendar API
-1. Go to **APIs & Services** → **Library**
-2. Search for **Google Calendar API** → **Enable**
-
-### Store Secrets in Firebase
 ```bash
-# Install Firebase CLI
-npm install -g firebase-tools
-
-# Login
-firebase login
-
-# Set your project
-firebase use your-project-id
-
-# Store secrets
-firebase functions:secrets:set GOOGLE_CLIENT_ID
-# Paste your OAuth Client ID
-
-firebase functions:secrets:set GOOGLE_CLIENT_SECRET
-# Paste your OAuth Client Secret
+# From the project root
+cd server
+source venv/bin/activate
+nohup python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 &
 ```
 
+That's it. But read on for a proper setup that survives reboots.
+
 ---
 
-## Step 4: Clone and Configure
+## Full setup
+
+### 1. Clone and install
 
 ```bash
-# Clone the repo
 git clone https://github.com/google-gemini/glanceboard.git
 cd glanceboard
 
-# Copy the config template
-cp web/src/config.example.js web/src/config.js
+# Server
+cd server
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cd ..
+
+# Dashboard
+cd web
+npm install
+npm run build
+cd ..
 ```
 
-Edit `web/src/config.js` with your Firebase config values:
-```javascript
-export const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
+### 2. Run the setup wizard
 
-export const GOOGLE_CLIENT_ID = "YOUR_OAUTH_CLIENT_ID.apps.googleusercontent.com";
-export const FUNCTIONS_REGION = "us-central1"; // or your preferred region
-export const DEPLOYMENT_MODE = "selfhost";
-```
-
----
-
-## Step 5: Deploy
+Start the server once to configure it:
 
 ```bash
-# Install web dependencies
-cd web && npm install && cd ..
-
-# Build the frontend
-cd web && npm run build && cd ..
-
-# Deploy everything to Firebase
-firebase deploy
+cd server
+source venv/bin/activate
+python3 -m uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
-This deploys:
-- **Hosting** → Your dashboard at `your-project.web.app`
-- **Functions** → Cloud Functions (Python)
-- **Firestore Rules** → Security rules
-- **Storage Rules** → Storage security rules
+Open `http://<your-server-ip>:8000` and complete the onboarding:
+
+- **API key** — Get one free from [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+- **Calendar** — Paste your iCal URL ([how to find it](#finding-your-ical-url))
+- **Location** — Set your timezone and location for weather
+- **Art style** — Choose your preferred style
+- **Characters** — Add your family (optional)
+
+Press `Ctrl+C` to stop the server once you're done configuring.
+
+### 3. Keep it running (systemd)
+
+Create a systemd service so it starts on boot and restarts if it crashes:
+
+```bash
+sudo tee /etc/systemd/system/glanceboard.service > /dev/null << 'EOF'
+[Unit]
+Description=Glanceboard Server
+Documentation=https://github.com/google-gemini/glanceboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=/home/$USER/glanceboard/server
+ExecStart=/home/$USER/glanceboard/server/venv/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=glanceboard
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+> **Note:** Edit the paths above if you cloned Glanceboard somewhere other than your home directory.
+
+Enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable glanceboard
+sudo systemctl start glanceboard
+```
+
+Check it's running:
+
+```bash
+sudo systemctl status glanceboard
+```
+
+View logs:
+
+```bash
+journalctl -u glanceboard -f
+```
+
+### 4. Connect your display
+
+Your e-ink display needs to fetch images from your server over your local network.
+
+1. Find your server's local IP: `hostname -I` (e.g. `192.168.1.50`)
+2. In the Glanceboard dashboard, go to **Settings → E-Ink Display Setup → 📋 Copy URL**
+3. On your PhotoPainter's web interface (see [display setup](README.md#display-setup-guide)):
+   - Set **Rotation Mode** → `url`
+   - Paste the display URL (it will look like `http://192.168.1.50:8000/images/latest_display.bmp`)
+   - Set **Interval** → `300` (5 minutes)
+   - Enable **Auto Rotate**
+
+> **Using a Pi as the display too?** See [Legacy Pi Setup](pi/LEGACY_PI_SETUP.md) — just use your local server URL instead of a Firebase URL.
 
 ---
 
-## Step 6: Set Up Your PhotoPainter Display
+## Raspberry Pi as the server
 
-See the full [Firmware & Display Setup Guide](firmware/README.md) for detailed instructions.
+A Raspberry Pi 4 or Pi 5 works great as a dedicated Glanceboard server. A Pi Zero 2W works too but image generation API calls may be slower.
 
-**Quick version:**
-1. Flash the community firmware via the [Web Flasher](https://aitjcize.github.io/esp32-photoframe/#flash) in Chrome
-2. Connect the PhotoPainter to your home WiFi via its setup hotspot (`PhotoFrame-XXXX`)
-3. Open the device's web interface → **Auto Rotate** → set **Rotation Mode** to `url`
-4. Paste your Display Image URL from the Glanceboard dashboard (**Settings → Copy URL**)
-5. Set interval to 300 seconds, disable deep sleep, enable auto rotate
-6. Generate your first image from the dashboard → the display will fetch and show it!
+### Pi-specific tips
 
-> 💡 **Using a Raspberry Pi instead?** See the [Legacy Pi Setup Guide](pi/LEGACY_PI_SETUP.md).
+- **Use Raspberry Pi OS Lite (64-bit)** — you don't need a desktop environment
+- **Set a static IP** on your router so the display URL doesn't change
+- **Python version:** Pi OS Bookworm ships with Python 3.11, which is perfect
+- **Node.js:** Install Node 18+ via [NodeSource](https://github.com/nodesource/distributions):
+  ```bash
+  curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+  ```
+
+### One-line install for Pi
+
+SSH into your Pi and run:
+
+```bash
+git clone https://github.com/google-gemini/glanceboard.git
+cd glanceboard
+cd server && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && cd ..
+cd web && npm install && npm run build && cd ..
+```
+
+Then set up the systemd service as described in [Step 3](#3-keep-it-running-systemd) above.
 
 ---
 
 ## Updating
 
 ```bash
-git pull origin main
-cd web && npm run build && cd ..
-firebase deploy
+cd ~/glanceboard
+git pull
+cd server && source venv/bin/activate && pip install -r requirements.txt && cd ..
+cd web && npm install && npm run build && cd ..
+sudo systemctl restart glanceboard
 ```
+
+---
+
+## Finding your iCal URL
+
+### Google Calendar
+1. Open [Google Calendar](https://calendar.google.com) on desktop
+2. Click the ⋮ menu next to your calendar → **Settings and sharing**
+3. Scroll to **Integrate calendar** → copy **Secret address in iCal format**
+
+### Apple Calendar (iCloud)
+1. Go to [icloud.com/calendar](https://www.icloud.com/calendar)
+2. Click the share icon next to a calendar → enable **Public Calendar**
+3. Copy the URL
+
+### Outlook / Microsoft 365
+1. Go to [Outlook Calendar](https://outlook.live.com/calendar) on the web
+2. Click ⚙️ → **View all Outlook settings** → **Calendar** → **Shared calendars**
+3. Under **Publish a calendar**, select your calendar → **ICS** → copy the link
 
 ---
 
 ## Troubleshooting
 
-### "Permission denied" errors
-- Make sure Firestore and Storage rules are deployed: `firebase deploy --only firestore,storage`
+### Server won't start
+- Check Python version: `python3 --version` (need 3.9+)
+- Check you're in the `server/` directory
+- Check the venv is activated: `source venv/bin/activate`
+- Check logs: `journalctl -u glanceboard -f`
 
-### Cloud Functions failing
-- Check the region matches your config: `FUNCTIONS_REGION` in `config.js`
-- Check secrets are set: `firebase functions:secrets:access GOOGLE_CLIENT_ID`
+### Dashboard shows but images don't generate
+- Check your API key is set in the dashboard
+- Check your calendar URL is valid (paste it in a browser — it should download an `.ics` file)
+- Try clicking **Generate Now** in the dashboard to see the error
 
-### Calendar not connecting
-- Verify your OAuth Client ID matches in both `config.js` and Firebase secrets
-- Check that the Calendar API is enabled in Google Cloud Console
-- Verify your authorized origins include your domain
+### Display not updating
+- Make sure the display can reach your server: `curl http://YOUR_SERVER_IP:8000/images/latest_display.bmp` from another device
+- Check the URL in the PhotoPainter settings matches your server IP
+- Your server and display must be on the same local network
 
-### Pi display not updating
-- Check the display URL is correct in `~/.glanceboard.conf`
-- Generate an image first from the dashboard
-- Check Pi logs: `journalctl -u eink-display -f`
+### Port 8000 already in use
+Set a different port:
+```bash
+python3 -m uvicorn app:app --host 0.0.0.0 --port 9000
+```
+Update the systemd service and display URL accordingly.
+
+---
+
+## Network notes
+
+- The server binds to `0.0.0.0:8000` — accessible to all devices on your local network
+- The e-ink display polls the server every few minutes for new images
+- All AI generation happens via API calls to the Gemini API — only your API key leaves your network
+- No data is stored in the cloud — everything stays on your server in `server/data/`

@@ -1,3 +1,19 @@
+<!--
+Copyright 2026 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the Apache License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Legacy Raspberry Pi Setup Guide
 
 > **Note:** Glanceboard now recommends the **Waveshare ESP32-S3 PhotoPainter** as the primary display hardware. This guide is for users who prefer a Raspberry Pi + separate e-ink display setup.
@@ -57,6 +73,7 @@ curl -sSL https://raw.githubusercontent.com/google-gemini/glanceboard/main/pi/in
 
 When prompted, paste your **Display Image URL** from the Glanceboard dashboard:
 - Go to **Settings** → **E-Ink Display Setup** → **📋 Copy URL**
+- If running a local server, the URL will look like: `http://YOUR_SERVER_IP:8000/images/latest_display.bmp`
 
 ---
 
@@ -81,8 +98,8 @@ journalctl -u eink-display -f
 ## How It Works
 
 The Pi runs a Python script (`display_update.py`) that:
-1. Polls the Firebase Storage URL every 5 minutes
+1. Polls the image URL every 5 minutes (either your local Glanceboard server or Firebase Storage)
 2. Downloads the latest image when it changes (hash-based detection)
 3. Pushes the image to the e-ink display via SPI
 
-The cloud side (Firebase + AI generation) works identically whether you use a Pi or the ESP32-S3 PhotoPainter — both just fetch the same public image URL.
+The Pi is just a display client — it fetches images from wherever your Glanceboard server is running (local server or Firebase). See the main [Self-Hosting Guide](../SELF_HOSTING.md) for setting up the server.

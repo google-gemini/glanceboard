@@ -1987,7 +1987,7 @@ def generate_image_via_openrouter(prompt, api_key, model, reference_image_urls=N
     return None
 
 
-def generate_image_via_google_ai(prompt, api_key, model="gemini-2.5-flash-image", reference_image_urls=None):
+def generate_image_via_google_ai(prompt, api_key, model="gemini-3-pro-image", reference_image_urls=None):
     """Call Google AI Studio (Gemini API) to generate an image.
 
     Uses the generateContent endpoint with responseModalities=["IMAGE", "TEXT"].

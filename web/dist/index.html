@@ -1,0 +1,780 @@
+<!--
+  Copyright 2026 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glanceboard — AI-generated calendar art for e-ink displays</title>
+  <meta name="description" content="Turn your Google Calendar into a daily illustrated scene on an e-ink display. Open source, built by a dad of three.">
+  <script type="module" crossorigin src="/assets/index-DXr1UVvt.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DuU3_3A5.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Auth screen (loading indicator — auto-skipped for self-hosted) -->
+    <div id="auth-screen" class="screen active">
+      <div style="text-align:center;opacity:0.5;margin:auto;">
+        <span style="font-size:48px;">🖼️</span>
+        <p style="margin-top:12px;color:var(--text-muted);">Loading Glanceboard...</p>
+      </div>
+    </div>
+
+
+    <!-- Onboarding wizard -->
+    <div id="onboarding-screen" class="screen">
+      <div class="onboarding-container">
+        <div class="onboarding-header">
+          <span class="onboarding-logo">🖼️</span>
+          <h1>Welcome to Glanceboard</h1>
+          <p>Let's get your e-ink display set up in a few steps.</p>
+        </div>
+
+        <!-- Step 1: API Key -->
+        <div id="onboard-step-1" class="onboard-step active" data-step="1">
+          <div class="step-indicator">
+            <span class="step-dot active"></span>
+            <span class="step-dot"></span>
+            <span class="step-dot"></span>
+            <span class="step-dot"></span>
+          </div>
+          <h2>1. AI Image Generation</h2>
+          <p class="step-desc">
+            Glanceboard uses Nano Banana to generate your calendar art.
+            You'll need a Gemini API key.
+          </p>
+          <div class="form-group">
+            <label for="onboard-api-provider">API Provider</label>
+            <select id="onboard-api-provider">
+              <option value="google" selected>Google AI Studio (Recommended)</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="onboard-api-key">API Key</label>
+            <input type="password" id="onboard-api-key" placeholder="AIza..." autocomplete="off">
+            <p class="help-text" id="onboard-api-help">
+              Get one at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio → Create API Key</a>
+            </p>
+          </div>
+          <div class="btn-row">
+            <button id="onboard-next-1" class="btn btn-primary">Next →</button>
+            <button id="onboard-skip" class="btn btn-ghost">Skip setup for now</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Calendar -->
+        <div id="onboard-step-2" class="onboard-step" data-step="2">
+          <div class="step-indicator">
+            <span class="step-dot done"></span>
+            <span class="step-dot active"></span>
+            <span class="step-dot"></span>
+            <span class="step-dot"></span>
+          </div>
+          <h2>2. Calendar</h2>
+          <p class="step-desc">
+            Paste your calendar's iCal URL so Glanceboard can read your events.
+          </p>
+          <p class="help-text" style="margin-bottom: 16px;">
+            💡 <strong>Google Calendar:</strong> Settings → your calendar → "Secret address in iCal format"
+          </p>
+          <div class="form-group">
+            <label for="onboard-ical">iCal Feed URL</label>
+            <input type="url" id="onboard-ical" placeholder="https://calendar.google.com/calendar/ical/...">
+            <p class="help-text">Works with Google Calendar, Outlook, Apple Calendar, or any iCal feed.</p>
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <label for="onboard-timezone">Timezone</label>
+            <select id="onboard-timezone">
+              <option value="Australia/Sydney">Australia/Sydney</option>
+              <option value="Australia/Melbourne">Australia/Melbourne</option>
+              <option value="Australia/Brisbane">Australia/Brisbane</option>
+              <option value="Australia/Perth">Australia/Perth</option>
+              <option value="America/New_York">America/New York</option>
+              <option value="America/Chicago">America/Chicago</option>
+              <option value="America/Denver">America/Denver</option>
+              <option value="America/Los_Angeles">America/Los Angeles</option>
+              <option value="Europe/London">Europe/London</option>
+              <option value="Europe/Berlin">Europe/Berlin</option>
+              <option value="Europe/Paris">Europe/Paris</option>
+              <option value="Asia/Tokyo">Asia/Tokyo</option>
+              <option value="Asia/Singapore">Asia/Singapore</option>
+              <option value="Pacific/Auckland">Pacific/Auckland</option>
+            </select>
+          </div>
+
+          <div class="btn-row">
+            <button id="onboard-next-2" class="btn btn-primary">Next →</button>
+            <button id="onboard-back-2" class="btn btn-ghost">← Back</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Weather / Location -->
+        <div id="onboard-step-3" class="onboard-step" data-step="3">
+          <div class="step-indicator">
+            <span class="step-dot done"></span>
+            <span class="step-dot done"></span>
+            <span class="step-dot active"></span>
+            <span class="step-dot"></span>
+          </div>
+          <h2>3. Weather</h2>
+          <p class="step-desc">
+            Enter your city or suburb so we can show the weather on your display and dress the characters appropriately.
+          </p>
+          <div class="form-group">
+            <label for="onboard-location">City / Suburb</label>
+            <div class="location-input-row">
+              <input type="text" id="onboard-location" placeholder="e.g. Sydney, Bondi Beach, Brooklyn NY">
+              <button id="onboard-geocode-btn" class="btn btn-secondary" type="button">Find</button>
+            </div>
+            <p id="onboard-location-result" class="help-text"></p>
+          </div>
+          <div class="form-group">
+            <label>Temperature Unit</label>
+            <div class="radio-group">
+              <label class="radio-label"><input type="radio" name="onboard-temp-unit" value="celsius" checked> °C (Celsius)</label>
+              <label class="radio-label"><input type="radio" name="onboard-temp-unit" value="fahrenheit"> °F (Fahrenheit)</label>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="onboard-next-3" class="btn btn-primary">Next →</button>
+            <button id="onboard-back-3" class="btn btn-ghost">← Back</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Done -->
+        <div id="onboard-step-4" class="onboard-step" data-step="4">
+          <div class="step-indicator">
+            <span class="step-dot done"></span>
+            <span class="step-dot done"></span>
+            <span class="step-dot done"></span>
+            <span class="step-dot active"></span>
+          </div>
+          <h2>4. You're all set! 🎉</h2>
+          <p class="step-desc">
+            Your Glanceboard is configured. Images generate automatically at 1 AM and 2 PM daily.
+          </p>
+          <div class="onboard-summary">
+            <div class="summary-item">
+              <span class="summary-icon">📋</span>
+              <span id="summary-tier">Plan selected</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">🔑</span>
+              <span id="summary-api">API key configured</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">📅</span>
+              <span id="summary-cal">Calendar connected</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">🌤️</span>
+              <span id="summary-weather">Weather configured</span>
+            </div>
+          </div>
+
+          <div id="onboard-device-info" class="pi-setup-guide" style="display: none;">
+            <h3>📱 Your Display</h3>
+            <p class="step-desc">Your Glanceboard device has been linked to your account. It will automatically poll for new images.</p>
+          </div>
+
+          <div id="onboard-no-device-info" class="pi-setup-guide">
+            <h3>📺 Set Up Your Display</h3>
+            <p class="step-desc" style="margin-bottom: 12px;">Flash the Glanceboard firmware onto your Waveshare PhotoPainter and connect it to your server.</p>
+            <ol class="setup-steps">
+              <li>Connect your PhotoPainter via USB-C and flash using the <a href="https://raphdixon.github.io/glanceboard-firmware/" target="_blank">Glanceboard Web Flasher</a> in Chrome or Edge</li>
+              <li>Connect to the <strong>Glanceboard-XXXX</strong> WiFi hotspot (no password)</li>
+              <li>Enter your WiFi credentials and paste the Display Image URL (from Settings → 📋 Copy URL)</li>
+              <li>Click <strong>Save & Connect</strong> — the display starts polling automatically</li>
+            </ol>
+          </div>
+
+          <div class="btn-row">
+            <button id="onboard-finish" class="btn btn-primary btn-glow">Go to Dashboard →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main dashboard -->
+    <div id="main-screen" class="screen">
+      <!-- Mobile hamburger button -->
+      <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Open menu">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+      <!-- Mobile backdrop overlay -->
+      <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+      <nav id="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-logo">🖼️</span>
+          <span class="sidebar-title">Glanceboard</span>
+        </div>
+        <div id="device-switcher" class="device-switcher"></div>
+        <ul class="nav-links">
+          <li><a href="#dashboard" class="nav-link active" data-page="dashboard">
+            <span class="nav-icon">📊</span> Dashboard
+          </a></li>
+          <li><a href="#layout" class="nav-link" data-page="layout">
+            <span class="nav-icon">📐</span> Layout
+          </a></li>
+          <li><a href="#characters" class="nav-link" data-page="characters">
+            <span class="nav-icon">👥</span> Characters
+          </a></li>
+          <li><a href="#prompt" class="nav-link" data-page="prompt">
+            <span class="nav-icon">✏️</span> Prompt
+          </a></li>
+          <li><a href="#guide" class="nav-link" data-page="guide">
+            <span class="nav-icon">📖</span> Setup Guide
+          </a></li>
+          <li><a href="#settings" class="nav-link" data-page="settings">
+            <span class="nav-icon">⚙️</span> Settings
+          </a></li>
+        </ul>
+        <div class="sidebar-footer"></div>
+      </nav>
+
+      <main id="content">
+        <!-- Dashboard Page -->
+        <div id="page-dashboard" class="page active">
+          <div class="page-header">
+            <h2>Dashboard</h2>
+            <button id="generate-btn" class="btn btn-primary btn-glow">
+              <span class="btn-icon">🎨</span> Generate Now
+            </button>
+          </div>
+          <div class="cards-grid">
+            <div class="card card-image">
+              <h3>Latest Display</h3>
+              <div id="latest-image-container" class="image-preview">
+                <p class="placeholder-text">No image generated yet</p>
+              </div>
+              <div id="image-meta" class="card-meta"></div>
+            </div>
+            <div class="card card-stats">
+              <h3>Status</h3>
+              <div class="stat-row">
+                <span class="stat-label">Last Generated</span>
+                <span id="stat-last-gen" class="stat-value">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Mode</span>
+                <span id="stat-mode" class="stat-value">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Events</span>
+                <span id="stat-events" class="stat-value">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Weather</span>
+                <span id="stat-weather" class="stat-value">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Characters</span>
+                <span id="stat-chars" class="stat-value">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Calendar</span>
+                <span id="stat-calendar" class="stat-value">—</span>
+              </div>
+              <div class="stat-row" id="stat-model-row">
+                <span class="stat-label">Model</span>
+                <span id="stat-model" class="stat-value">—</span>
+              </div>
+
+            </div>
+          </div>
+          <div id="generation-progress" class="progress-bar hidden">
+            <div class="progress-fill"></div>
+            <span class="progress-text">Generating image...</span>
+          </div>
+          <div id="last-prompt-card" class="card hidden" style="margin-top: 16px;">
+            <h3>Last Used Prompt</h3>
+            <pre id="last-prompt-text" class="prompt-preview-text"></pre>
+          </div>
+        </div>
+
+        <!-- Layout Page -->
+        <div id="page-layout" class="page">
+          <div class="page-header">
+            <h2>Layout</h2>
+            <p class="page-subtitle">Drag widgets onto the canvas to design your display</p>
+          </div>
+          <div class="layout-builder">
+            <div class="canvas-frame">
+              <div id="canvas-grid" class="canvas-grid">
+                <div id="drop-preview" class="drop-preview"></div>
+              </div>
+            </div>
+            <div class="layout-sidebar">
+              <h3 class="tray-title">Widgets</h3>
+              <div id="widget-tray" class="widget-tray"></div>
+            </div>
+          </div>
+          <div id="layout-config-panel" class="layout-config-panel hidden">
+            <div class="layout-config-panel-header">
+              <h3 id="layout-config-panel-title">Configure</h3>
+              <button id="layout-config-panel-close" class="btn-icon-only">✕</button>
+            </div>
+            <div id="layout-config-panel-body"></div>
+          </div>
+
+          <!-- Art Style Section -->
+          <div class="card" style="margin-top: 20px;">
+            <h3>Art Style</h3>
+            <p class="help-text" style="margin-bottom: 12px;">Choose the visual style for your generated images, or write your own.</p>
+            <div id="aesthetic-grid" class="aesthetic-grid">
+              <label class="aesthetic-option">
+                <input type="radio" name="aesthetic" value="whimsical" checked>
+                <div class="aesthetic-card">
+                  <span class="aesthetic-icon">🎨</span>
+                  <span class="aesthetic-name">Whimsical</span>
+                  <span class="aesthetic-desc">Pen-and-ink children's book</span>
+                </div>
+              </label>
+              <label class="aesthetic-option">
+                <input type="radio" name="aesthetic" value="fashion">
+                <div class="aesthetic-card">
+                  <span class="aesthetic-icon">✏️</span>
+                  <span class="aesthetic-name">Fashion Sketch</span>
+                  <span class="aesthetic-desc">Elegant fashion illustration</span>
+                </div>
+              </label>
+              <label class="aesthetic-option">
+                <input type="radio" name="aesthetic" value="watercolor">
+                <div class="aesthetic-card">
+                  <span class="aesthetic-icon">🖌️</span>
+                  <span class="aesthetic-name">Watercolour</span>
+                  <span class="aesthetic-desc">Soft watercolour painting</span>
+                </div>
+              </label>
+              <label class="aesthetic-option">
+                <input type="radio" name="aesthetic" value="pixel">
+                <div class="aesthetic-card">
+                  <span class="aesthetic-icon">👾</span>
+                  <span class="aesthetic-name">Pixel Art</span>
+                  <span class="aesthetic-desc">Retro 16-bit pixel style</span>
+                </div>
+              </label>
+              <label class="aesthetic-option">
+                <input type="radio" name="aesthetic" value="comic">
+                <div class="aesthetic-card">
+                  <span class="aesthetic-icon">💥</span>
+                  <span class="aesthetic-name">Comic Book</span>
+                  <span class="aesthetic-desc">Bold ink, halftone dots</span>
+                </div>
+              </label>
+              <label class="aesthetic-option">
+                <input type="radio" name="aesthetic" value="japanese">
+                <div class="aesthetic-card">
+                  <span class="aesthetic-icon">🏯</span>
+                  <span class="aesthetic-name">Japanese Ink</span>
+                  <span class="aesthetic-desc">Sumi-e brush painting</span>
+                </div>
+              </label>
+              <label class="aesthetic-option">
+                <input type="radio" name="aesthetic" value="custom">
+                <div class="aesthetic-card">
+                  <span class="aesthetic-icon">🔧</span>
+                  <span class="aesthetic-name">Custom</span>
+                  <span class="aesthetic-desc">Write your own style</span>
+                </div>
+              </label>
+            </div>
+            <div id="custom-aesthetic-group" class="form-group hidden" style="margin-top: 12px;">
+              <label for="custom-aesthetic-input">Custom Art Style Description</label>
+              <textarea id="custom-aesthetic-input" rows="2" placeholder="e.g. 'Ukiyo-e woodblock print with muted earth tones'"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Characters Page -->
+        <div id="page-characters" class="page">
+          <div class="page-header">
+            <h2>Characters</h2>
+          </div>
+          <section class="section">
+            <h3 class="section-title">🧑 People</h3>
+            <p class="section-desc">Add the people who appear in your daily illustrations. Upload photos for AI consistency.</p>
+            <div id="kids-grid" class="character-grid"></div>
+            <button id="add-kid-btn" class="btn btn-secondary">+ Add Person</button>
+          </section>
+          <section class="section">
+            <h3 class="section-title">🐾 Extra Characters</h3>
+            <p class="section-desc">Add pets, mascots, or other characters that appear alongside your people.</p>
+            <div id="extras-grid" class="character-grid"></div>
+            <button id="add-extra-btn" class="btn btn-secondary">+ Add Character</button>
+          </section>
+        </div>
+
+        <!-- Prompt Page -->
+        <div id="page-prompt" class="page">
+          <div class="page-header">
+            <h2>Prompt Template</h2>
+          </div>
+          <div class="card">
+            <p class="section-desc">
+              Customize the image generation prompt. Available placeholders:
+              <code>{{DAY_NAME}}</code>, <code>{{BANNER_TEXT}}</code>, <code>{{SEASON}}</code>,
+              <code>{{EVENT_LIST}}</code>, <code>{{CHARACTERS}}</code>,
+              <code>{{WEATHER}}</code>, <code>{{BIRTHDAY}}</code>, <code>{{MODE}}</code>
+            </p>
+            <textarea id="prompt-template" class="prompt-editor" rows="16"
+              placeholder="Loading default prompt..."></textarea>
+            <div class="btn-row">
+              <button id="save-prompt-btn" class="btn btn-primary">Save Template</button>
+              <button id="reset-prompt-btn" class="btn btn-ghost">Reset to Default</button>
+              <button id="preview-prompt-btn" class="btn btn-secondary">Preview Prompt</button>
+            </div>
+          </div>
+          <div id="prompt-preview" class="card hidden">
+            <h3>Preview (with live calendar data)</h3>
+            <pre id="prompt-preview-text" class="prompt-preview-text"></pre>
+          </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="page-settings" class="page">
+          <div class="page-header">
+            <h2>Settings</h2>
+          </div>
+
+          <!-- Calendar Settings -->
+          <div class="card" style="margin-bottom: 20px;">
+            <h3>📅 Calendar</h3>
+            <div class="form-group">
+              <label for="setting-ical-url">iCal Feed URL</label>
+              <input type="url" id="setting-ical-url" placeholder="https://calendar.google.com/calendar/ical/...">
+              <p class="help-text">Paste your calendar's secret iCal URL. Works with Google Calendar, Outlook, Apple Calendar, or any iCal feed.</p>
+            </div>
+          </div>
+
+
+
+          <!-- Weather Settings -->
+          <div class="card" style="margin-bottom: 20px;">
+            <h3>🌤️ Weather</h3>
+            <div class="form-group">
+              <label for="setting-location">City / Suburb</label>
+              <div class="location-input-row">
+                <input type="text" id="setting-location" placeholder="e.g. Sydney">
+                <button id="setting-geocode-btn" class="btn btn-secondary" type="button">Find</button>
+              </div>
+              <p id="setting-location-result" class="help-text"></p>
+            </div>
+            <div class="form-group">
+              <label>Temperature Unit</label>
+              <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="setting-temp-unit" value="celsius" checked> °C (Celsius)</label>
+                <label class="radio-label"><input type="radio" name="setting-temp-unit" value="fahrenheit"> °F (Fahrenheit)</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- General Settings -->
+          <div class="card">
+            <h3>⚙️ General</h3>
+            <div class="form-group">
+              <label for="setting-api-provider">API Provider</label>
+              <select id="setting-api-provider">
+                <option value="google" selected>Google AI Studio (Recommended)</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="setting-api-key">API Key</label>
+              <input type="password" id="setting-api-key" placeholder="AIza...">
+              <p class="help-text" id="setting-api-help">
+                Get one at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio → Create API Key</a>
+              </p>
+            </div>
+            <div class="form-group">
+              <label for="setting-timezone">Timezone</label>
+              <select id="setting-timezone">
+                <option value="Australia/Sydney">Australia/Sydney</option>
+                <option value="Australia/Melbourne">Australia/Melbourne</option>
+                <option value="Australia/Brisbane">Australia/Brisbane</option>
+                <option value="Australia/Perth">Australia/Perth</option>
+                <option value="America/New_York">America/New York</option>
+                <option value="America/Chicago">America/Chicago</option>
+                <option value="America/Denver">America/Denver</option>
+                <option value="America/Los_Angeles">America/Los Angeles</option>
+                <option value="Europe/London">Europe/London</option>
+                <option value="Europe/Berlin">Europe/Berlin</option>
+                <option value="Europe/Paris">Europe/Paris</option>
+                <option value="Asia/Tokyo">Asia/Tokyo</option>
+                <option value="Asia/Singapore">Asia/Singapore</option>
+                <option value="Pacific/Auckland">Pacific/Auckland</option>
+              </select>
+            </div>
+            <div class="form-group" id="model-group">
+              <label for="setting-model">Image Model</label>
+              <select id="setting-model">
+                <optgroup label="Google (Gemini)">
+                  <option value="google/gemini-3-pro-image" selected>Gemini 3 Pro Image (Recommended)</option>
+                  <option value="google/gemini-3.1-flash-image">Gemini 3.1 Flash Image</option>
+                  <option value="google/gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
+                </optgroup>
+                <optgroup label="OpenAI">
+                  <option value="openai/gpt-image-2">GPT Image 2</option>
+                  <option value="openai/gpt-image-1">GPT Image 1</option>
+                  <option value="openai/gpt-image-1-mini">GPT Image 1 Mini</option>
+                </optgroup>
+                <optgroup label="Black Forest Labs (FLUX)">
+                  <option value="black-forest-labs/flux.2-pro">FLUX.2 Pro</option>
+                  <option value="black-forest-labs/flux.2-klein-4b">FLUX.2 Klein 4B</option>
+                </optgroup>
+              </select>
+
+            </div>
+            <div class="form-group">
+              <label for="setting-text-model">Text Model</label>
+              <select id="setting-text-model">
+                <optgroup label="Google (Gemini)">
+                  <option value="gemini-flash-latest" selected>Gemini Flash Latest (Recommended)</option>
+                  <option value="gemini-3.6-flash">Gemini Flash 3.6</option>
+                  <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                </optgroup>
+              </select>
+              <p class="help-text">Used for rewriting calendar events, generating scene descriptions, and scanning for important dates. Runs alongside image generation.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="toggle-label">
+                <input type="checkbox" id="setting-characters" checked>
+                <span>Include characters in generated images</span>
+              </label>
+            </div>
+
+            <!-- Generation Schedule -->
+            <div class="form-group" style="margin-top: 16px;">
+              <label>Generation Schedule</label>
+              <p class="help-text" style="margin-bottom: 8px;">
+                Choose what times your Glanceboard generates a new image each day.
+                <span id="schedule-limit-info"></span>
+              </p>
+              <div id="schedule-pills" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;"></div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <select id="schedule-add-hour" style="width: auto;">
+                  <option value="">Add a time…</option>
+                </select>
+                <button type="button" id="schedule-add-btn" class="btn btn-secondary" style="padding: 6px 12px;">+ Add</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Display Setup -->
+          <div class="card" style="margin-top: 20px;">
+            <h3>📺 E-Ink Display Setup</h3>
+            <div class="form-group">
+              <label for="setting-pi-url">Display Image URL</label>
+              <input type="text" id="setting-pi-url" placeholder="http://your-server-ip:8000/images/latest_display.bmp">
+              <p class="help-text">Auto-generated from your account. Copy this URL and paste it into your e-ink display's settings.</p>
+              <div class="btn-row" style="margin-top: 8px;">
+                <button id="copy-pi-url" class="btn btn-secondary" type="button">📋 Copy URL</button>
+                <button id="reset-pi-url" class="btn btn-ghost" type="button">↺ Reset to default</button>
+              </div>
+            </div>
+            <div class="pi-setup-guide">
+              <p class="step-desc"><strong>How to connect your Waveshare ESP32-S3 PhotoPainter:</strong></p>
+              <ol class="setup-steps">
+                <li>Flash the firmware using the <a href="https://raphdixon.github.io/glanceboard-firmware/" target="_blank">Glanceboard Web Flasher</a> in Chrome or Edge</li>
+                <li>Connect to the <strong>Glanceboard-XXXX</strong> WiFi hotspot (no password)</li>
+                <li>Enter your WiFi credentials and paste the <strong>Display Image URL</strong> (copied above with 📋 Copy URL)</li>
+                <li>Choose a <strong>poll interval</strong> and click <strong>Save &amp; Connect</strong></li>
+              </ol>
+              <p class="help-text" style="margin-top: 12px;">Using a Raspberry Pi instead? See the <a href="https://github.com/google-gemini/glanceboard/blob/main/pi/LEGACY_PI_SETUP.md" target="_blank">legacy Pi setup guide</a>.</p>
+            </div>
+            <button id="save-settings-btn" class="btn btn-primary">Save Settings</button>
+          </div>
+
+          <!-- Pause Generation -->
+          <div class="card" style="margin-top: 20px;">
+            <h3>⏸️ Generation Control</h3>
+            <p class="help-text">Stop generating new images. Your settings and data are preserved — toggle back on to resume.</p>
+            <div id="pause-status-active" class="hidden">
+              <div class="warning-badge" style="margin-bottom: 10px;">⏸️ Generation is paused</div>
+              <button id="resume-account-btn" class="btn btn-primary" type="button">▶️ Resume Generation</button>
+            </div>
+            <div id="pause-status-normal">
+              <button id="pause-account-btn" class="btn btn-ghost" type="button">⏸️ Pause Generation</button>
+            </div>
+          </div>
+
+        </div>
+
+
+
+      <!-- Setup Guide Page -->
+      <div id="page-guide" class="page">
+        <div class="page-header">
+          <h2>Setup Guide</h2>
+        </div>
+
+        <div class="guide-container">
+          <!-- Step 1: Get the PhotoPainter -->
+          <div class="guide-step">
+            <div class="guide-step-number">1</div>
+            <div class="guide-step-content">
+              <h3>🛒 Get the PhotoPainter</h3>
+              <p>You just need one thing — the display itself:</p>
+              <div class="parts-list">
+                <div class="part-item">
+                  <span class="part-icon">🖼️</span>
+                  <div>
+                    <strong>Waveshare ESP32-S3 PhotoPainter</strong>
+                    <p>7.3" colour e-ink display in a beautiful wooden frame with built-in WiFi, speaker, and sensors. ~$90 from Waveshare or Amazon.</p>
+                  </div>
+                </div>
+                <div class="part-item">
+                  <span class="part-icon">🔌</span>
+                  <div>
+                    <strong>USB-C Cable</strong>
+                    <p>For power — or use the optional lithium battery for cable-free operation.</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Step 2: Flash & Connect -->
+          <div class="guide-step">
+            <div class="guide-step-number">2</div>
+            <div class="guide-step-content">
+              <h3>⚡ Flash & Connect</h3>
+              <p><strong>Flash the firmware:</strong></p>
+              <ol class="guide-substeps">
+                <li>Connect the PhotoPainter to your computer via USB-C</li>
+                <li>Open the <a href="https://raphdixon.github.io/glanceboard-firmware/" target="_blank"><strong>Glanceboard Web Flasher</strong></a> in Chrome or Edge</li>
+                <li>Click <strong>Install Glanceboard Firmware</strong> and select your device</li>
+                <li>Wait for the flash to complete (~2 minutes), then unplug and replug the USB cable</li>
+              </ol>
+              <p style="margin-top: 12px;"><strong>Connect to WiFi &amp; configure:</strong></p>
+              <ol class="guide-substeps">
+                <li>The display shows a setup screen with the WiFi name <strong>Glanceboard-XXXX</strong></li>
+                <li>On your phone or computer, connect to the <strong>Glanceboard-XXXX</strong> WiFi (no password)</li>
+                <li>A setup page opens automatically (or go to <strong>http://192.168.4.1</strong>)</li>
+                <li>Enter your <strong>WiFi credentials</strong></li>
+                <li>Paste the <strong>Display Image URL</strong> from your Glanceboard dashboard (<strong>Settings → E-Ink Display Setup → 📋 Copy URL</strong>)</li>
+                <li>Choose a <strong>poll interval</strong> and click <strong>Save &amp; Connect</strong></li>
+              </ol>
+              <p class="help-text" style="margin-top: 12px;">The device restarts, connects to WiFi, and starts polling for images. The display updates within ~60 seconds.</p>
+              <p class="help-text" style="margin-top: 12px;">Using a Raspberry Pi instead? See the <a href="https://github.com/google-gemini/glanceboard/blob/main/pi/LEGACY_PI_SETUP.md" target="_blank">legacy Pi setup guide</a>.</p>
+            </div>
+          </div>
+
+          <!-- Step 3: Generate Your First Image -->
+          <div class="guide-step">
+            <div class="guide-step-number">3</div>
+            <div class="guide-step-content">
+              <h3>🎨 Generate Your First Image</h3>
+              <ol class="guide-substeps">
+                <li>Come back to this dashboard</li>
+                <li>Go to the <strong>Dashboard</strong> page</li>
+                <li>Click <strong>"🎨 Generate Now"</strong></li>
+                <li>Your first calendar art image will be created and the display will fetch it automatically!</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Step 4: Done -->
+          <div class="guide-step">
+            <div class="guide-step-number">✨</div>
+            <div class="guide-step-content">
+              <h3>🎉 You're Done!</h3>
+              <p>Your Glanceboard will now:</p>
+              <ul>
+                <li>✅ Generate new art at your scheduled times, only when your calendar or weather changes</li>
+                <li>✅ Update the e-ink display automatically</li>
+                <li>✅ Show your events, weather forecast, characters, and upcoming birthdays</li>
+              </ul>
+              <p>You can also manually regenerate from the Dashboard anytime.</p>
+              <div class="guide-tip">
+                💡 <strong>Using a Raspberry Pi instead?</strong> The legacy Pi setup is still supported — see the <a href="https://github.com/google-gemini/glanceboard/blob/main/pi/LEGACY_PI_SETUP.md" target="_blank" rel="noopener">Pi setup guide</a> on GitHub.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Character edit modal -->
+  <dialog id="character-modal" class="modal">
+    <div class="modal-content">
+      <h3 id="modal-title">Edit Character</h3>
+      <form id="character-form">
+        <input type="hidden" id="char-id">
+        <input type="hidden" id="char-type">
+        <div class="form-group">
+          <label for="char-name">Name</label>
+          <input type="text" id="char-name" required placeholder="e.g. Ellis">
+        </div>
+        <div class="form-group" id="gender-group">
+          <label for="char-gender">Gender</label>
+          <select id="char-gender">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group" id="age-group">
+          <label for="char-age">Age</label>
+          <input type="number" id="char-age" placeholder="e.g. 7" min="0" max="120">
+          <p class="help-text">Helps the AI draw the character at the right age.</p>
+        </div>
+        <div class="form-group" id="birthday-group">
+          <label for="char-birthday">Birthday</label>
+          <input type="date" id="char-birthday">
+          <p class="help-text">When their birthday is within 7 days, a countdown appears on the display.</p>
+        </div>
+        <div class="form-group">
+          <label for="char-description">Description</label>
+          <textarea id="char-description" rows="3"
+            placeholder="e.g. Blonde hair, usually wears casual clothes"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="char-image">Reference Image</label>
+          <p class="help-text">This image is sent to the AI for character consistency.</p>
+          <div class="image-upload-area" id="char-image-area">
+            <input type="file" id="char-image" accept="image/*" class="file-input">
+            <div id="char-image-preview" class="upload-preview">
+              <span class="upload-icon">📷</span>
+              <span>Click or drag to upload</span>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" id="modal-cancel" class="btn btn-ghost">Cancel</button>
+          <button type="button" id="modal-delete" class="btn btn-danger hidden">Delete</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+  <div id="drag-ghost" class="drag-ghost hidden"></div>
+
+</body>
+</html>

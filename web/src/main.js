@@ -524,7 +524,7 @@ $("#onboard-finish").addEventListener("click", async () => {
     openrouter_api_key: apiKey,
     ical_url: icalUrl,
     timezone: timezone,
-    image_model: "google/gemini-2.5-flash-image",
+    image_model: "google/gemini-3-pro-image",
     characters_enabled: true,
     setup_complete: true,
   };
@@ -1629,7 +1629,7 @@ async function loadSettings() {
 
   // Device-level fields — load dynamic models, set value, THEN filter by provider
   await loadDynamicModels();
-  $("#setting-model").value = d.image_model || c.image_model || "google/gemini-2.5-flash-image";
+  $("#setting-model").value = d.image_model || c.image_model || "google/gemini-3-pro-image";
   filterModelsByProvider(provider);
   // Set text model
   $("#setting-text-model").value = d.text_model || c.text_model || "gemini-flash-latest";
@@ -1674,8 +1674,6 @@ async function loadSettings() {
       $("#setting-pi-url").dataset.defaultUrl = piUrl;
     }
   } catch (e) { /* non-critical */ }
-
-  updateModelCostInfo();
 
   // Generation schedule
   const schedule = c.generation_schedule || [4, 10, 14, 18];

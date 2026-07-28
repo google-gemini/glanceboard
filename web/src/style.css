@@ -1780,6 +1780,7 @@ select {
 /* ─── Setup Guide ───────────────────────────────────────────── */
 .guide-container {
   max-width: 720px;
+  margin: 0 auto;
 }
 
 .guide-step {
@@ -1850,6 +1851,20 @@ select {
   font-size: 13px;
   color: var(--text-secondary);
   margin-top: 12px;
+}
+
+.guide-screenshot-item {
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
+}
+
+.guide-screenshot-item img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .parts-list {

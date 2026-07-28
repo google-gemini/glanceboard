@@ -1,3 +1,19 @@
+<!--
+Copyright 2026 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the Apache License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Glanceboard Demo
 
 **Glanceboard is an e-ink display that helps you start your day, built with Gemini**
@@ -34,7 +50,9 @@ The display polls the server for new images — no cloud account needed.
 |------|-------------|
 | [**Waveshare ESP32-S3 PhotoPainter**](https://www.waveshare.com/esp32-s3-photopainter.htm) | 7.3" colour e-ink display in a wooden frame with built-in WiFi |
 | **USB-C cable** | For power (or use an optional lithium battery) |
-| **A computer or Pi** | To run the Glanceboard server (anything that runs Python) |
+| **A computer or Pi** | To run the Glanceboard server |
+| **Python 3.9+** | Required for the server |
+| **Node.js 18+** | Required to build the web dashboard |
 
 No soldering. No ribbon cables. Just one display and a server.
 
@@ -79,7 +97,7 @@ cd ..
 # Install and build the web dashboard
 cd web
 npm install
-npm run build
+npm run build   # automatically creates src/config.js from template on first run
 cd ..
 ```
 
@@ -103,7 +121,7 @@ Open [http://localhost:8000](http://localhost:8000) — the Glanceboard dashboar
 
 See [Display setup guide](#display-setup-guide) below to flash and connect your PhotoPainter.
 
----
+> **Want to keep it running 24/7?** See [Self-Hosting Guide](SELF_HOSTING.md) for systemd service setup, Raspberry Pi instructions, and running Glanceboard as a permanent home server.
 
 ## Suggested models
 
@@ -139,24 +157,24 @@ Glanceboard requires a **Gemini API key** to generate images.
 ### Step 1: Flash the firmware
 
 1. Connect your PhotoPainter to your computer via USB-C
-2. Go to the [web flasher](https://aitjcize.github.io/esp32-photoframe/#flash) in Chrome
-3. Click **Connect**, select your device, and flash the latest firmware
+2. Open the [Glanceboard Web Flasher](https://raphdixon.github.io/glanceboard-firmware/) in **Chrome or Edge**
+3. Click **Install Glanceboard Firmware** and select your device
+4. Wait for the flash to complete (~2 minutes)
+5. Unplug and replug the USB-C cable to reboot
 
-### Step 2: Connect to WiFi
+### Step 2: Connect to WiFi and configure
 
-1. Power on the PhotoPainter — a setup screen with QR codes appears
-2. Scan the QR code on the device with your phone
-3. Follow the prompts to connect the PhotoPainter to your local WiFi
+1. After rebooting, the display shows a setup screen with the WiFi name `Glanceboard-XXXX`
+2. On your phone or computer, connect to the `Glanceboard-XXXX` WiFi network (no password)
+3. A setup page will open automatically (or go to `http://192.168.4.1`)
+4. Enter your **WiFi network name** and **password** (leave password blank for open networks)
+5. Paste the **Display Image URL** from your Glanceboard dashboard (found in **Settings → E-Ink Display Setup → 📋 Copy URL**) — it looks like `http://YOUR_SERVER_IP:8000/images/latest_display.bmp`
+6. Choose a **poll interval** (how often the display refreshes)
+7. Click **Save & Connect**
 
-### Step 3: Configure the display
+The device will restart, connect to your WiFi, and begin polling for images. The display will update within ~60 seconds.
 
-1. On a computer on the same WiFi, go to [photoframe.local](http://photoframe.local) (or scan the QR code — but a computer is easier)
-2. Scroll down to **Settings** and click the **Auto Rotate** tab
-3. Enable **Auto-Rotate**
-4. Under **Rotation Mode**, select **Fetch image from URL**
-5. Paste the Display Image URL from your Glanceboard dashboard (found in **Settings → E-Ink Display Setup → 📋 Copy URL**)
-6. Set a wake schedule to control how often the display refreshes
-7. Click **Save** — you're done!
+> **Tip:** You can reconfigure the device later by accessing its IP address from any browser on the same network. The IP is shown on the display after setup.
 
 > **Using a Raspberry Pi as the display?** The legacy Pi + separate e-ink HAT setup is still supported — see [Legacy Pi Setup](pi/LEGACY_PI_SETUP.md).
 
@@ -236,7 +254,8 @@ glanceboard/
 ├── firestore.rules             # Firestore security rules (hosted version)
 ├── storage.rules               # Storage security rules (hosted version)
 ├── firebase.json               # Firebase config (hosted version)
-├── SELF_HOSTING.md             # Firebase self-hosting guide
+├── SELF_HOSTING.md             # Guide to running on your own server 24/7
+├── FIREBASE_DEPLOY.md          # Firebase deployment guide (hosted version)
 ├── EMAIL_SETUP.md              # Optional email widget setup guide
 └── LICENSE                     # Apache 2.0 License
 ```
@@ -269,15 +288,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for det
 
 ## Disclaimer
 
-Copyright 2026 Google LLC
-
-All software is licensed under the Apache License, Version 2.0 (Apache 2.0); you may not use this file except in compliance with the Apache 2.0 license. You may obtain a copy of the Apache 2.0 license at: https://www.apache.org/licenses/LICENSE-2.0
-
-All other materials are licensed under the Creative Commons Attribution 4.0 International License (CC-BY). You may obtain a copy of the CC-BY license at: https://creativecommons.org/licenses/by/4.0/legalcode
-
-Unless required by applicable law or agreed to in writing, all software and materials distributed here under the Apache 2.0 or CC-BY licenses are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the licenses for the specific language governing permissions and limitations under those licenses.
-
-This is not an official Google product.
+This is not an officially supported Google product.
 
 ---
 
