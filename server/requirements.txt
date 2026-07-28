@@ -23,4 +23,4 @@ recurring-ical-events==3.8.2
 pytz==2026.2
 tzdata==2026.3
 google-genai==1.47.0
-python-multipart==0.0.20
+python-multipart==0.0.31
