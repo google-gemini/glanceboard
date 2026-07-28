@@ -1,0 +1,68 @@
+rules_version = '2';
+
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── Per-user display images ─────────────────────────────
+    // Public read so the Pi (or any display client) can fetch without auth.
+    // Only the owning user (via Cloud Functions) can write.
+    match /users/{uid}/display/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ─── Per-device display images ───────────────────────────
+    // Multi-device support — same public read for Pi access.
+    match /users/{uid}/devices/{deviceId}/display/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ─── Per-user archive ────────────────────────────────────
+    // Historical generated images — owner only.
+    match /users/{uid}/archive/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ─── Per-device archive ─────────────────────────────────
+    match /users/{uid}/devices/{deviceId}/archive/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ─── Per-user character reference images ─────────────────
+    // Photos uploaded for character consistency — owner only.
+    match /users/{uid}/characters/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024  // 10MB max
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ─── Workshop device images ──────────────────────────────
+    // Public read so ESP32 devices can fetch via image_url without auth.
+    // Authenticated users can write (the workshop app uploads the generated image).
+    match /devices/{deviceId}/display/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ─── Deny everything else ────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

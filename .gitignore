@@ -1,0 +1,40 @@
+# ─── Environment & Secrets ──────────────────────────────
+.env
+.env.*
+functions/.env
+
+# ─── Firebase ───────────────────────────────────────────
+.firebase/
+.firebaserc
+
+# ─── App Config (contains API keys) ────────────────────
+# Self-hosters: copy config.example.js → config.js
+web/src/config.js
+server/data/config.json
+server/data/gmail_credentials.json
+server/data/gmail_token.json
+
+# ─── Generated Data ────────────────────────────────────
+server/data/images/
+
+# ─── Build Artifacts ────────────────────────────────────
+web/dist/
+output/
+
+# ─── Dependencies ──────────────────────────────────────
+node_modules/
+web/node_modules/
+venv/
+functions/venv/
+email-worker/node_modules/
+
+# ─── Python ────────────────────────────────────────────
+__pycache__/
+functions/__pycache__/
+*.pyc
+
+# ─── OS Files ──────────────────────────────────────────
+.DS_Store
+*.log
+Thumbs.db
+web/public/IMG_7447.HEIC

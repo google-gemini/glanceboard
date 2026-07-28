@@ -1,0 +1,19 @@
+{
+  "name": "eink-calendar-admin",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "predev": "test -f src/config.js || cp src/config.example.js src/config.js",
+    "prebuild": "test -f src/config.js || cp src/config.example.js src/config.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "firebase": "^11.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

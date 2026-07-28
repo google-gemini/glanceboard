@@ -1,0 +1,1975 @@
+<!--
+  Copyright 2026 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glanceboard AIS — AI Calendar Art Generator</title>
+  <meta name="description" content="Turn your Google Calendar into daily illustrated art using Gemini AI. Runs entirely in the browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary:#F0F0F0;--bg-card:#FFFFFF;--bg-card-hover:#F5F5F5;--bg-input:#FFFFFF;--bg-surface:#F8F8F8;
+  --border:#D0D0D0;--border-subtle:#E0E0E0;--border-focus:rgba(0,136,204,0.4);
+  --text-primary:#1a1a1a;--text-secondary:#4a4a4a;--text-muted:#666;--text-faint:#999;
+  --accent:#0088CC;--accent-hover:#00A8F0;--accent-glow:rgba(0,136,204,0.1);
+  --success:#2d8a4e;--danger:#d4183d;--warning:#c07d10;
+  --radius:0px;--shadow-sm:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.08);
+  --shadow-window:0 2px 8px rgba(0,0,0,.12),0 0 1px rgba(0,0,0,.08);
+  --sidebar-width:180px;--transition:150ms ease;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-mono:'SF Mono','Menlo','Monaco',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:var(--font);background:var(--bg-primary);color:var(--text-primary);line-height:1.6;-webkit-font-smoothing:antialiased}
+#app{height:100%}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent-hover);text-decoration:underline}
+.hidden{display:none!important}
+.screen{display:none;height:100%}.screen.active{display:flex}
+#auth-screen{background:var(--bg-primary)}
+#auth-screen.active{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.onboarding-container{max-width:480px;width:100%;margin:0 auto;padding:48px 32px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-window)}
+.onboarding-header{text-align:center;margin-bottom:32px}
+.onboarding-logo{font-size:48px;display:block;margin-bottom:8px}
+.onboarding-header h1{font-size:1.5rem;font-weight:600}
+.onboarding-header p{color:var(--text-secondary);font-size:14px;margin-top:4px}
+.onboard-step{display:none}.onboard-step.active{display:block}
+.step-indicator{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:var(--transition)}
+.step-dot.active{background:var(--accent)}.step-dot.done{background:var(--success)}
+.step-desc{color:var(--text-secondary);font-size:14px;margin-bottom:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:4px}
+input[type="text"],input[type="url"],input[type="password"],input[type="number"],input[type="date"],select,textarea{
+  width:100%;padding:8px 12px;font-size:14px;font-family:var(--font);border:1px solid var(--border);
+  background:var(--bg-input);color:var(--text-primary);outline:none;transition:border var(--transition)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--border-focus)}
+textarea{resize:vertical}
+.help-text{font-size:12px;color:var(--text-muted);margin-top:4px}
+.radio-group{display:flex;gap:16px}.radio-label{font-size:14px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.location-input-row{display:flex;gap:8px}.location-input-row input{flex:1}
+.btn-row{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+.btn{padding:8px 16px;font-size:14px;font-family:var(--font);font-weight:500;border:1px solid var(--border);
+  background:var(--bg-card);color:var(--text-primary);cursor:pointer;transition:all var(--transition);display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--bg-card-hover)}.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-secondary{background:var(--bg-surface);border-color:var(--border)}.btn-secondary:hover{background:var(--bg-card-hover)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--text-muted)}.btn-ghost:hover{color:var(--text-primary);background:var(--bg-surface)}
+.btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}.btn-danger:hover{opacity:.9}
+.btn-glow{animation:glow 2s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 5px var(--accent-glow)}50%{box-shadow:0 0 20px var(--accent-glow),0 0 40px rgba(0,136,204,.05)}}
+.btn-icon{font-size:16px}
+.btn-icon-only{background:none;border:none;font-size:18px;cursor:pointer;padding:4px;color:var(--text-muted)}
+.btn-icon-only:hover{color:var(--text-primary)}
+#main-screen{display:none}#main-screen.active{display:flex}
+#sidebar{width:var(--sidebar-width);background:var(--bg-card);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;height:100vh;position:sticky;top:0}
+.sidebar-header{padding:16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.sidebar-logo{font-size:24px}.sidebar-title{font-size:15px;font-weight:600}
+.nav-links{list-style:none;padding:8px 0;flex:1}
+.nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:13px;color:var(--text-secondary);text-decoration:none;transition:all var(--transition)}
+.nav-link:hover{background:var(--bg-surface);color:var(--text-primary);text-decoration:none}
+.nav-link.active{background:var(--accent-glow);color:var(--accent);font-weight:500}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--text-faint)}
+#content{flex:1;padding:24px;overflow-y:auto;height:100vh}
+.page{display:none}.page.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.page-header h2{font-size:1.25rem;font-weight:600}
+.page-subtitle{color:var(--text-muted);font-size:13px;margin-top:2px}
+.cards-grid{display:grid;grid-template-columns:1fr 300px;gap:16px}
+.card{background:var(--bg-card);border:1px solid var(--border);padding:20px;box-shadow:var(--shadow-sm)}
+.card h3{font-size:14px;font-weight:600;margin-bottom:12px}
+.image-preview{min-height:200px;background:var(--bg-surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;position:relative}
+.image-preview img{max-width:100%;max-height:400px;display:block}
+.placeholder-text{color:var(--text-faint);font-size:14px}
+.card-meta{margin-top:8px;font-size:12px;color:var(--text-muted)}
+.stat-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:13px}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:var(--text-muted)}.stat-value{font-weight:500}
+.progress-bar{background:var(--bg-surface);border:1px solid var(--border);height:32px;position:relative;margin-top:16px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-hover));width:0%;transition:width .5s ease}
+.progress-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:500;color:var(--text-primary)}
+.prompt-editor{width:100%;font-family:var(--font-mono);font-size:13px;line-height:1.5;padding:12px}
+.prompt-preview-text{font-family:var(--font-mono);font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:400px;overflow-y:auto;background:var(--bg-surface);padding:12px;border:1px solid var(--border)}
+.layout-builder{display:grid;grid-template-columns:1fr 200px;gap:16px}
+.canvas-frame{background:var(--bg-card);border:1px solid var(--border);padding:12px;box-shadow:var(--shadow-sm)}
+.canvas-grid{display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(8,1fr);gap:2px;aspect-ratio:800/480;background:var(--border-subtle);position:relative}
+.canvas-grid>div{background:var(--bg-surface);min-height:0}
+.layout-sidebar{background:var(--bg-card);border:1px solid var(--border);padding:12px;box-shadow:var(--shadow-sm)}
+.tray-title{font-size:13px;font-weight:600;margin-bottom:8px}
+.widget-tray{display:flex;flex-direction:column;gap:6px}
+.widget-chip{padding:8px 10px;background:var(--bg-surface);border:1px solid var(--border);cursor:grab;font-size:12px;display:flex;align-items:center;gap:6px;transition:all var(--transition)}
+.widget-chip:hover{background:var(--bg-card-hover);border-color:var(--accent)}
+.widget-chip.placed{opacity:.4;cursor:default}
+.widget-placed{background:var(--accent-glow);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;text-align:center;cursor:pointer;position:relative;padding:4px;word-break:break-word}
+.widget-placed .widget-remove{position:absolute;top:2px;right:2px;font-size:10px;cursor:pointer;opacity:0;transition:opacity var(--transition)}
+.widget-placed:hover .widget-remove{opacity:1}
+.drop-preview{position:absolute;background:rgba(0,136,204,.15);border:2px dashed var(--accent);pointer-events:none;display:none;z-index:10}
+.aesthetic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.aesthetic-option{cursor:pointer}.aesthetic-option input{display:none}
+.aesthetic-card{padding:12px;border:1px solid var(--border);text-align:center;transition:all var(--transition);background:var(--bg-card)}
+.aesthetic-card:hover{border-color:var(--accent);background:var(--accent-glow)}
+.aesthetic-option input:checked+.aesthetic-card{border-color:var(--accent);background:var(--accent-glow);box-shadow:0 0 0 2px var(--accent)}
+.aesthetic-icon{font-size:24px;display:block;margin-bottom:4px}
+.aesthetic-name{font-size:13px;font-weight:500;display:block}
+.aesthetic-desc{font-size:11px;color:var(--text-muted);display:block;margin-top:2px}
+.character-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:12px}
+.character-card{background:var(--bg-card);border:1px solid var(--border);padding:12px;cursor:pointer;transition:all var(--transition)}
+.character-card:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.character-card img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--bg-surface);margin-bottom:8px}
+.character-card h4{font-size:13px;font-weight:500}.character-card p{font-size:12px;color:var(--text-muted)}
+.section{margin-bottom:28px}.section-title{font-size:15px;font-weight:600;margin-bottom:6px}.section-desc{font-size:13px;color:var(--text-secondary);margin-bottom:12px}
+.modal{border:none;padding:0;max-width:480px;width:90%;box-shadow:var(--shadow-window);background:var(--bg-card)}
+.modal::backdrop{background:rgba(0,0,0,.4)}
+.modal-content{padding:24px}
+.modal-content h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.image-upload-area{border:2px dashed var(--border);padding:20px;text-align:center;cursor:pointer;transition:border var(--transition)}
+.image-upload-area:hover{border-color:var(--accent)}
+.file-input{display:none}
+.upload-preview{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-muted);font-size:13px}
+.upload-icon{font-size:32px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;background:#333;color:#fff;font-size:13px;
+  box-shadow:var(--shadow-md);z-index:9999;transition:opacity .3s,transform .3s;opacity:1}
+.toast.hidden{opacity:0;transform:translateX(-50%) translateY(10px);pointer-events:none}
+.toast.success{background:var(--success)}.toast.error{background:var(--danger)}.toast.warning{background:var(--warning)}
+.onboard-summary{display:flex;flex-direction:column;gap:8px;margin:16px 0}
+.summary-item{display:flex;align-items:center;gap:8px;font-size:14px}
+.summary-icon{font-size:18px}
+.toggle-label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.guide-container{max-width:640px}.guide-step{display:flex;gap:16px;margin-bottom:24px}
+.guide-step-number{width:32px;height:32px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;flex-shrink:0}
+.guide-step-content h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.guide-step-content p{font-size:13px;color:var(--text-secondary);margin-bottom:8px}
+.guide-substeps{padding-left:20px;font-size:13px;color:var(--text-secondary)}
+.guide-substeps li{padding:3px 0}
+.guide-tip{background:var(--bg-surface);border:1px solid var(--border);padding:12px;font-size:13px;margin-top:12px}
+.parts-list{margin-top:8px}.part-item{display:flex;gap:12px;margin-bottom:12px;font-size:13px}
+.part-icon{font-size:24px;flex-shrink:0}
+.part-item strong{display:block;margin-bottom:2px}
+.part-item p{color:var(--text-secondary);margin:0;font-size:12px}
+.pi-setup-guide{background:var(--bg-surface);border:1px solid var(--border);padding:16px;margin-top:12px}
+.pi-setup-guide h3{font-size:14px;font-weight:600;margin-bottom:8px}
+.setup-steps{padding-left:20px;font-size:13px;color:var(--text-secondary)}
+.setup-steps li{padding:3px 0}
+.warning-badge{display:inline-block;padding:4px 12px;background:#fff3cd;border:1px solid #ffc107;font-size:13px;font-weight:500}
+.layout-config-panel{background:var(--bg-card);border:1px solid var(--border);padding:16px;margin-top:16px;box-shadow:var(--shadow-sm)}
+.layout-config-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.drag-ghost{position:fixed;pointer-events:none;z-index:10000;padding:6px 12px;background:var(--accent);color:#fff;font-size:12px;box-shadow:var(--shadow-md)}
+.mobile-menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:1001;background:var(--bg-card);border:1px solid var(--border);
+  padding:8px;cursor:pointer;flex-direction:column;gap:4px}
+.hamburger-line{width:18px;height:2px;background:var(--text-primary);display:block}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:999}
+@media(max-width:768px){
+  #sidebar{position:fixed;left:-100%;z-index:1000;transition:left .3s ease;width:220px}
+  #sidebar.open{left:0}
+  .sidebar-backdrop.open{display:block}
+  .mobile-menu-btn{display:flex}
+  #content{padding:16px;padding-top:48px}
+  .cards-grid{grid-template-columns:1fr}
+  .layout-builder{grid-template-columns:1fr}
+  .aesthetic-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+}
+.display-url-card{background:var(--bg-card);border:1px solid var(--border);padding:20px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
+.display-url-card h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.display-url-card .help-text{margin-bottom:12px}
+.display-url-row{display:flex;gap:8px;align-items:stretch}
+.display-url-row input{flex:1;font-family:var(--font-mono);font-size:13px;background:var(--bg-surface)}
+.display-url-row .btn{white-space:nowrap}
+.display-url-note{margin-top:12px;font-size:12px;color:var(--text-muted);line-height:1.6}
+.display-mode-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#000;flex-direction:column}
+.display-mode-screen img{max-width:100%;max-height:100vh;image-rendering:pixelated}
+.display-mode-screen .display-mode-meta{color:#666;font-size:11px;margin-top:4px;font-family:monospace}
+.eink-setup-card{background:var(--bg-card);border:1px solid var(--border);padding:24px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+.eink-setup-card h3{font-size:15px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.eink-setup-steps{padding-left:20px;font-size:13px;color:var(--text-secondary);margin:12px 0}
+.eink-setup-steps li{padding:4px 0;line-height:1.6}
+.eink-setup-steps li strong{color:var(--text-primary)}
+.eink-divider{border:none;border-top:1px solid var(--border-subtle);margin:20px 0}
+</style>
+</head>
+<body>
+  <div id="app">
+    <div id="auth-screen" class="screen active">
+      <div style="text-align:center;opacity:.5;margin:auto">
+        <span style="font-size:48px">🖼️</span>
+        <p style="margin-top:12px;color:var(--text-muted)">Loading Glanceboard...</p>
+      </div>
+    </div>
+
+    <div id="onboarding-screen" class="screen">
+      <div class="onboarding-container">
+        <div class="onboarding-header">
+          <span class="onboarding-logo">🖼️</span>
+          <h1>Welcome to Glanceboard</h1>
+          <p>Let's get your AI calendar art set up in a few steps.</p>
+        </div>
+        <div id="onboard-step-1" class="onboard-step active" data-step="1">
+          <div class="step-indicator"><span class="step-dot active"></span><span class="step-dot"></span><span class="step-dot"></span><span class="step-dot"></span></div>
+          <h2>1. AI Image Generation</h2>
+          <p class="step-desc">Glanceboard uses Gemini to generate your calendar art. You'll need an API key.</p>
+          <div class="form-group">
+            <label for="onboard-api-provider">API Provider</label>
+            <select id="onboard-api-provider"><option value="google" selected>Google AI Studio (Recommended)</option><option value="openrouter">OpenRouter</option></select>
+          </div>
+          <div class="form-group">
+            <label for="onboard-api-key">API Key</label>
+            <input type="password" id="onboard-api-key" placeholder="AIza..." autocomplete="off">
+            <p class="help-text" id="onboard-api-help">Get one at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio → Create API Key</a></p>
+          </div>
+          <div class="btn-row">
+            <button id="onboard-next-1" class="btn btn-primary">Next →</button>
+            <button id="onboard-skip" class="btn btn-ghost">Skip setup for now</button>
+          </div>
+        </div>
+        <div id="onboard-step-2" class="onboard-step" data-step="2">
+          <div class="step-indicator"><span class="step-dot done"></span><span class="step-dot active"></span><span class="step-dot"></span><span class="step-dot"></span></div>
+          <h2>2. Calendar</h2>
+          <p class="step-desc">Paste your calendar's iCal URL so Glanceboard can read your events.</p>
+          <p class="help-text" style="margin-bottom:16px">💡 <strong>Google Calendar:</strong> Settings → your calendar → "Secret address in iCal format"</p>
+          <div class="form-group">
+            <label for="onboard-ical">iCal Feed URL</label>
+            <input type="url" id="onboard-ical" placeholder="https://calendar.google.com/calendar/ical/...">
+            <p class="help-text">Works with Google Calendar, Outlook, Apple Calendar, or any iCal feed.</p>
+          </div>
+          <div class="form-group" style="margin-top:16px">
+            <label for="onboard-timezone">Timezone</label>
+            <select id="onboard-timezone">
+              <option value="Australia/Sydney">Australia/Sydney</option><option value="Australia/Melbourne">Australia/Melbourne</option>
+              <option value="Australia/Brisbane">Australia/Brisbane</option><option value="Australia/Perth">Australia/Perth</option>
+              <option value="America/New_York">America/New York</option><option value="America/Chicago">America/Chicago</option>
+              <option value="America/Denver">America/Denver</option><option value="America/Los_Angeles">America/Los Angeles</option>
+              <option value="Europe/London">Europe/London</option><option value="Europe/Berlin">Europe/Berlin</option>
+              <option value="Europe/Paris">Europe/Paris</option><option value="Asia/Tokyo">Asia/Tokyo</option>
+              <option value="Asia/Singapore">Asia/Singapore</option><option value="Pacific/Auckland">Pacific/Auckland</option>
+            </select>
+          </div>
+          <div class="btn-row">
+            <button id="onboard-next-2" class="btn btn-primary">Next →</button>
+            <button id="onboard-back-2" class="btn btn-ghost">← Back</button>
+          </div>
+        </div>
+        <div id="onboard-step-3" class="onboard-step" data-step="3">
+          <div class="step-indicator"><span class="step-dot done"></span><span class="step-dot done"></span><span class="step-dot active"></span><span class="step-dot"></span></div>
+          <h2>3. Weather</h2>
+          <p class="step-desc">Enter your city or suburb so we can show the weather and dress characters appropriately.</p>
+          <div class="form-group">
+            <label for="onboard-location">City / Suburb</label>
+            <div class="location-input-row">
+              <input type="text" id="onboard-location" placeholder="e.g. Sydney, Brooklyn NY">
+              <button id="onboard-geocode-btn" class="btn btn-secondary" type="button">Find</button>
+            </div>
+            <p id="onboard-location-result" class="help-text"></p>
+          </div>
+          <div class="form-group">
+            <label>Temperature Unit</label>
+            <div class="radio-group">
+              <label class="radio-label"><input type="radio" name="onboard-temp-unit" value="celsius" checked> °C</label>
+              <label class="radio-label"><input type="radio" name="onboard-temp-unit" value="fahrenheit"> °F</label>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="onboard-next-3" class="btn btn-primary">Next →</button>
+            <button id="onboard-back-3" class="btn btn-ghost">← Back</button>
+          </div>
+        </div>
+        <div id="onboard-step-4" class="onboard-step" data-step="4">
+          <div class="step-indicator"><span class="step-dot done"></span><span class="step-dot done"></span><span class="step-dot done"></span><span class="step-dot active"></span></div>
+          <h2>4. You're all set! 🎉</h2>
+          <p class="step-desc">Your Glanceboard is configured and ready to generate.</p>
+          <div class="onboard-summary">
+            <div class="summary-item"><span class="summary-icon">🔑</span><span id="summary-api">API key configured</span></div>
+            <div class="summary-item"><span class="summary-icon">📅</span><span id="summary-cal">Calendar connected</span></div>
+            <div class="summary-item"><span class="summary-icon">🌤️</span><span id="summary-weather">Weather configured</span></div>
+          </div>
+          <div class="btn-row">
+            <button id="onboard-finish" class="btn btn-primary btn-glow">Go to Dashboard →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="main-screen" class="screen">
+      <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Open menu">
+        <span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span>
+      </button>
+      <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+      <nav id="sidebar">
+        <div class="sidebar-header"><span class="sidebar-logo">🖼️</span><span class="sidebar-title">Glanceboard</span></div>
+        <ul class="nav-links">
+          <li><a href="#dashboard" class="nav-link active" data-page="dashboard"><span class="nav-icon">📊</span> Dashboard</a></li>
+          <li><a href="#layout" class="nav-link" data-page="layout"><span class="nav-icon">📐</span> Layout</a></li>
+          <li><a href="#characters" class="nav-link" data-page="characters"><span class="nav-icon">👥</span> Characters</a></li>
+          <li><a href="#prompt" class="nav-link" data-page="prompt"><span class="nav-icon">✏️</span> Prompt</a></li>
+          <li><a href="#guide" class="nav-link" data-page="guide"><span class="nav-icon">📖</span> Setup Guide</a></li>
+          <li><a href="#settings" class="nav-link" data-page="settings"><span class="nav-icon">⚙️</span> Settings</a></li>
+        </ul>
+        <div class="sidebar-footer">
+          <button id="export-config-btn" class="btn btn-ghost" style="font-size:12px;padding:4px 8px">📤 Export Config</button>
+          <button id="import-config-btn" class="btn btn-ghost" style="font-size:12px;padding:4px 8px">📥 Import Config</button>
+          <input type="file" id="import-config-file" accept=".json" style="display:none">
+        </div>
+      </nav>
+      <main id="content">
+        <div id="page-dashboard" class="page active">
+          <div class="page-header">
+            <h2>Dashboard</h2>
+            <button id="generate-btn" class="btn btn-primary btn-glow"><span class="btn-icon">🎨</span> Generate Now</button>
+          </div>
+          <div class="cards-grid">
+            <div class="card card-image">
+              <h3>Latest Display</h3>
+              <div id="latest-image-container" class="image-preview"><p class="placeholder-text">No image generated yet</p></div>
+              <div id="image-actions" class="btn-row hidden" style="margin-top:8px">
+                <button id="download-full-btn" class="btn btn-secondary" style="font-size:12px">💾 Download Full</button>
+                <button id="download-dithered-btn" class="btn btn-secondary" style="font-size:12px">📺 Download E-Ink</button>
+              </div>
+              <div id="image-meta" class="card-meta"></div>
+            </div>
+            <div class="card card-stats">
+              <h3>Status</h3>
+              <div class="stat-row"><span class="stat-label">Last Generated</span><span id="stat-last-gen" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">Mode</span><span id="stat-mode" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">Events</span><span id="stat-events" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">Weather</span><span id="stat-weather" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">Characters</span><span id="stat-chars" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">Model</span><span id="stat-model" class="stat-value">—</span></div>
+            </div>
+          </div>
+          <div id="generation-progress" class="progress-bar hidden">
+            <div class="progress-fill"></div>
+            <span class="progress-text">Generating image...</span>
+          </div>
+          <div id="last-prompt-card" class="card hidden" style="margin-top:16px">
+            <h3>Last Used Prompt</h3>
+            <pre id="last-prompt-text" class="prompt-preview-text"></pre>
+          </div>
+        </div>
+
+        <div id="page-layout" class="page">
+          <div class="page-header"><h2>Layout</h2><p class="page-subtitle">Drag widgets onto the canvas to design your display</p></div>
+          <div class="layout-builder">
+            <div class="canvas-frame"><div id="canvas-grid" class="canvas-grid"><div id="drop-preview" class="drop-preview"></div></div></div>
+            <div class="layout-sidebar">
+              <h3 class="tray-title">Widgets</h3>
+              <div id="widget-tray" class="widget-tray"></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:20px">
+            <h3>Art Style</h3>
+            <p class="help-text" style="margin-bottom:12px">Choose the visual style for your generated images.</p>
+            <div id="aesthetic-grid" class="aesthetic-grid">
+              <label class="aesthetic-option"><input type="radio" name="aesthetic" value="whimsical" checked><div class="aesthetic-card"><span class="aesthetic-icon">🎨</span><span class="aesthetic-name">Whimsical</span><span class="aesthetic-desc">Pen-and-ink children's book</span></div></label>
+              <label class="aesthetic-option"><input type="radio" name="aesthetic" value="fashion"><div class="aesthetic-card"><span class="aesthetic-icon">✏️</span><span class="aesthetic-name">Fashion Sketch</span><span class="aesthetic-desc">Elegant fashion illustration</span></div></label>
+              <label class="aesthetic-option"><input type="radio" name="aesthetic" value="watercolor"><div class="aesthetic-card"><span class="aesthetic-icon">🖌️</span><span class="aesthetic-name">Watercolour</span><span class="aesthetic-desc">Soft watercolour painting</span></div></label>
+              <label class="aesthetic-option"><input type="radio" name="aesthetic" value="pixel"><div class="aesthetic-card"><span class="aesthetic-icon">👾</span><span class="aesthetic-name">Pixel Art</span><span class="aesthetic-desc">Retro 16-bit pixel style</span></div></label>
+              <label class="aesthetic-option"><input type="radio" name="aesthetic" value="comic"><div class="aesthetic-card"><span class="aesthetic-icon">💥</span><span class="aesthetic-name">Comic Book</span><span class="aesthetic-desc">Bold ink, halftone dots</span></div></label>
+              <label class="aesthetic-option"><input type="radio" name="aesthetic" value="japanese"><div class="aesthetic-card"><span class="aesthetic-icon">🏯</span><span class="aesthetic-name">Japanese Ink</span><span class="aesthetic-desc">Sumi-e brush painting</span></div></label>
+              <label class="aesthetic-option"><input type="radio" name="aesthetic" value="custom"><div class="aesthetic-card"><span class="aesthetic-icon">🔧</span><span class="aesthetic-name">Custom</span><span class="aesthetic-desc">Write your own style</span></div></label>
+            </div>
+            <div id="custom-aesthetic-group" class="form-group hidden" style="margin-top:12px">
+              <label for="custom-aesthetic-input">Custom Art Style Description</label>
+              <textarea id="custom-aesthetic-input" rows="2" placeholder="e.g. 'Ukiyo-e woodblock print with muted earth tones'"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div id="page-characters" class="page">
+          <div class="page-header"><h2>Characters</h2></div>
+          <section class="section">
+            <h3 class="section-title">🧑 People</h3>
+            <p class="section-desc">Add the people who appear in your daily illustrations. Upload photos for AI consistency.</p>
+            <div id="kids-grid" class="character-grid"></div>
+            <button id="add-kid-btn" class="btn btn-secondary">+ Add Person</button>
+          </section>
+          <section class="section">
+            <h3 class="section-title">🐾 Extra Characters</h3>
+            <p class="section-desc">Add pets, mascots, or other characters that appear alongside your people.</p>
+            <div id="extras-grid" class="character-grid"></div>
+            <button id="add-extra-btn" class="btn btn-secondary">+ Add Character</button>
+          </section>
+        </div>
+
+        <div id="page-prompt" class="page">
+          <div class="page-header"><h2>Prompt Template</h2></div>
+          <div class="card">
+            <p class="section-desc">Customize the image generation prompt. Available placeholders:
+              <code>{{DAY_NAME}}</code>, <code>{{BANNER_TEXT}}</code>, <code>{{SEASON}}</code>,
+              <code>{{EVENT_LIST}}</code>, <code>{{CHARACTERS}}</code>,
+              <code>{{WEATHER}}</code>, <code>{{BIRTHDAY}}</code>, <code>{{MODE}}</code>
+            </p>
+            <textarea id="prompt-template" class="prompt-editor" rows="16" placeholder="Loading default prompt..."></textarea>
+            <div class="btn-row">
+              <button id="save-prompt-btn" class="btn btn-primary">Save Template</button>
+              <button id="reset-prompt-btn" class="btn btn-ghost">Reset to Default</button>
+              <button id="preview-prompt-btn" class="btn btn-secondary">Preview Prompt</button>
+            </div>
+          </div>
+          <div id="prompt-preview" class="card hidden"><h3>Preview</h3><pre id="prompt-preview-text" class="prompt-preview-text"></pre></div>
+        </div>
+
+        <div id="page-settings" class="page">
+          <div class="page-header"><h2>Settings</h2></div>
+          <div class="card" style="margin-bottom:20px">
+            <h3>📅 Calendar</h3>
+            <div class="form-group">
+              <label for="setting-ical-url">iCal Feed URL</label>
+              <input type="url" id="setting-ical-url" placeholder="https://calendar.google.com/calendar/ical/...">
+              <p class="help-text">Paste your calendar's secret iCal URL.</p>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:20px">
+            <h3>🌤️ Weather</h3>
+            <div class="form-group">
+              <label for="setting-location">City / Suburb</label>
+              <div class="location-input-row">
+                <input type="text" id="setting-location" placeholder="e.g. Sydney">
+                <button id="setting-geocode-btn" class="btn btn-secondary" type="button">Find</button>
+              </div>
+              <p id="setting-location-result" class="help-text"></p>
+            </div>
+            <div class="form-group">
+              <label>Temperature Unit</label>
+              <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="setting-temp-unit" value="celsius" checked> °C</label>
+                <label class="radio-label"><input type="radio" name="setting-temp-unit" value="fahrenheit"> °F</label>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>⚙️ General</h3>
+            <div class="form-group">
+              <label for="setting-api-provider">API Provider</label>
+              <select id="setting-api-provider"><option value="google" selected>Google AI Studio (Recommended)</option><option value="openrouter">OpenRouter</option></select>
+            </div>
+            <div class="form-group">
+              <label for="setting-api-key">API Key</label>
+              <input type="password" id="setting-api-key" placeholder="AIza...">
+              <p class="help-text">Get one at <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio → Create API Key</a></p>
+            </div>
+            <div class="form-group">
+              <label for="setting-timezone">Timezone</label>
+              <select id="setting-timezone">
+                <option value="Australia/Sydney">Australia/Sydney</option><option value="Australia/Melbourne">Australia/Melbourne</option>
+                <option value="America/New_York">America/New York</option><option value="America/Chicago">America/Chicago</option>
+                <option value="America/Los_Angeles">America/Los Angeles</option><option value="Europe/London">Europe/London</option>
+                <option value="Europe/Berlin">Europe/Berlin</option><option value="Asia/Tokyo">Asia/Tokyo</option>
+                <option value="Asia/Singapore">Asia/Singapore</option><option value="Pacific/Auckland">Pacific/Auckland</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="setting-model">Image Model</label>
+              <select id="setting-model">
+                <optgroup label="Google (Gemini)">
+                  <option value="google/gemini-3-pro-image" selected>Gemini 3 Pro Image (Recommended)</option>
+                  <option value="google/gemini-3.1-flash-image">Gemini 3.1 Flash Image</option>
+                  <option value="google/gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="setting-text-model">Text Model</label>
+              <select id="setting-text-model">
+                <option value="gemini-flash-latest" selected>Gemini Flash Latest</option>
+                <option value="gemini-3.6-flash">Gemini Flash 3.6</option>
+                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+              </select>
+              <p class="help-text">Used for rewriting calendar events, generating scene descriptions, and scanning for important dates.</p>
+            </div>
+            <div class="form-group">
+              <label class="toggle-label"><input type="checkbox" id="setting-characters" checked><span>Include characters in generated images</span></label>
+            </div>
+            <button id="save-settings-btn" class="btn btn-primary">Save Settings</button>
+          </div>
+        </div>
+
+        <div id="page-guide" class="page">
+          <div class="page-header"><h2>Setup Guide</h2></div>
+          <div class="guide-container">
+            <div class="guide-step"><div class="guide-step-number">1</div><div class="guide-step-content">
+              <h3>🔑 Get an API Key</h3>
+              <ol class="guide-substeps">
+                <li>Go to <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></li>
+                <li>Click <strong>Create API Key</strong> → select your Google Cloud project</li>
+                <li>Copy the key and paste it in Settings</li>
+              </ol>
+            </div></div>
+            <div class="guide-step"><div class="guide-step-number">2</div><div class="guide-step-content">
+              <h3>📅 Connect Your Calendar</h3>
+              <ol class="guide-substeps">
+                <li>Go to Google Calendar Settings</li>
+                <li>Click your calendar → "Secret address in iCal format"</li>
+                <li>Copy the URL and paste it in Settings</li>
+              </ol>
+            </div></div>
+            <div class="guide-step"><div class="guide-step-number">3</div><div class="guide-step-content">
+              <h3>🌤️ Set Your Location</h3>
+              <p>Enter your city in Settings so we can show weather and dress characters appropriately.</p>
+            </div></div>
+            <div class="guide-step"><div class="guide-step-number">4</div><div class="guide-step-content">
+              <h3>🎨 Generate!</h3>
+              <p>Go to the Dashboard and click <strong>"🎨 Generate Now"</strong> to create your first calendar art image.</p>
+            </div></div>
+
+            <hr class="eink-divider">
+
+            <div class="eink-setup-card">
+              <h3>📺 E-Ink Display Setup</h3>
+              <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Connect your Waveshare ESP32-S3 PhotoPainter display to auto-fetch generated images.</p>
+
+              <div class="display-url-card">
+                <h3>Display Image URL</h3>
+                <p class="help-text">Auto-generated from your account. Your PhotoPainter fetches this URL to update the display.</p>
+                <div class="display-url-row">
+                  <input type="text" id="guide-display-url" readonly>
+                  <button id="guide-copy-url-btn" class="btn btn-secondary">📋 Copy URL</button>
+                </div>
+                <div class="display-url-row" style="margin-top:8px">
+                  <button id="guide-open-display-btn" class="btn btn-ghost" style="font-size:12px">↗ Open in new tab</button>
+                  <button id="guide-reset-url-btn" class="btn btn-ghost" style="font-size:12px">↺ Reset to default</button>
+                </div>
+                <p class="display-url-note">💡 The display URL is auto-generated from this page's address. If you're hosting this file on a server (e.g. <code>python -m http.server 8000</code>), your display can fetch from this URL directly.</p>
+              </div>
+
+              <p style="font-size:13px;color:var(--text-secondary);margin:16px 0 8px">To set up your <strong>Waveshare ESP32-S3 PhotoPainter</strong> display:</p>
+
+              <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Step 1: Flash the firmware</h3>
+              <ol class="eink-setup-steps">
+                <li>Connect the PhotoPainter to your computer via USB-C</li>
+                <li>Open the <a href="https://raphdixon.github.io/glanceboard-firmware/" target="_blank"><strong>Glanceboard Web Flasher</strong></a> in Chrome or Edge</li>
+                <li>Click <strong>Install Glanceboard Firmware</strong> and select your device</li>
+                <li>Wait for the flash to complete (~2 minutes), then unplug and replug the USB cable</li>
+              </ol>
+
+              <h3 style="font-size:14px;font-weight:600;margin:16px 0 4px">Step 2: Connect to WiFi & configure</h3>
+              <ol class="eink-setup-steps">
+                <li>The display shows a setup screen with the WiFi name <strong>Glanceboard-XXXX</strong></li>
+                <li>On your phone/computer, connect to the <strong>Glanceboard-XXXX</strong> WiFi (no password)</li>
+                <li>A setup page opens automatically (or go to <strong>http://192.168.4.1</strong>)</li>
+                <li>Enter your <strong>WiFi credentials</strong></li>
+                <li>Paste the <strong>Display Image URL</strong> from above (📋 Copy URL)</li>
+                <li>Choose a <strong>poll interval</strong> and click <strong>Save &amp; Connect</strong></li>
+              </ol>
+              <p style="font-size:13px;color:var(--text-secondary);margin-top:12px">The device restarts, connects to WiFi, and starts polling for images. The display updates within ~60 seconds.</p>
+
+              <div class="guide-tip">💡 <strong>Using a Raspberry Pi instead?</strong> See the <a href="https://github.com/google-gemini/glanceboard" target="_blank">Glanceboard GitHub</a> for the legacy Pi setup guide.</div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="character-modal" class="modal">
+    <div class="modal-content">
+      <h3 id="modal-title">Edit Character</h3>
+      <form id="character-form">
+        <input type="hidden" id="char-id"><input type="hidden" id="char-type">
+        <div class="form-group"><label for="char-name">Name</label><input type="text" id="char-name" required placeholder="e.g. Ellis"></div>
+        <div class="form-group" id="gender-group"><label for="char-gender">Gender</label><select id="char-gender"><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
+        <div class="form-group" id="age-group"><label for="char-age">Age</label><input type="number" id="char-age" placeholder="e.g. 7" min="0" max="120"><p class="help-text">Helps the AI draw the character at the right age.</p></div>
+        <div class="form-group" id="birthday-group"><label for="char-birthday">Birthday</label><input type="date" id="char-birthday"><p class="help-text">When their birthday is within 7 days, a countdown appears on the display.</p></div>
+        <div class="form-group"><label for="char-description">Description</label><textarea id="char-description" rows="3" placeholder="e.g. Blonde hair, usually wears casual clothes"></textarea></div>
+        <div class="form-group">
+          <label for="char-image">Reference Image</label>
+          <p class="help-text">This image is sent to the AI for character consistency.</p>
+          <div class="image-upload-area" id="char-image-area">
+            <input type="file" id="char-image" accept="image/*" class="file-input">
+            <div id="char-image-preview" class="upload-preview"><span class="upload-icon">📷</span><span>Click or drag to upload</span></div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" id="modal-cancel" class="btn btn-ghost">Cancel</button>
+          <button type="button" id="modal-delete" class="btn btn-danger hidden">Delete</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+  <div id="drag-ghost" class="drag-ghost hidden"></div>
+
+<script>
+/**
+ * Glanceboard AIS — Client-Side JavaScript Engine
+ *
+ * This is a complete client-side port of the Glanceboard server (Python/FastAPI)
+ * and frontend. All API calls go directly to the Gemini API from the browser.
+ * Config is stored in localStorage. No server required.
+ */
+
+// ─── Constants ─────────────────────────────────────────────────
+const DISPLAY_WIDTH = 800;
+const DISPLAY_HEIGHT = 480;
+const DEFAULT_TIMEZONE = 'Australia/Sydney';
+const DEFAULT_TEXT_MODEL = 'gemini-flash-latest';
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+];
+
+const WMO_WEATHER_CODES = {
+  0:['Clear sky','☀️'],1:['Mainly clear','🌤️'],2:['Partly cloudy','⛅'],3:['Overcast','☁️'],
+  45:['Foggy','🌫️'],48:['Icy fog','🌫️'],51:['Light drizzle','🌦️'],53:['Drizzle','🌦️'],
+  55:['Heavy drizzle','🌧️'],56:['Freezing drizzle','🌧️'],57:['Heavy freezing drizzle','🌧️'],
+  61:['Light rain','🌦️'],63:['Rain','🌧️'],65:['Heavy rain','🌧️'],66:['Freezing rain','🌧️'],
+  67:['Heavy freezing rain','🌧️'],71:['Light snow','🌨️'],73:['Snow','🌨️'],75:['Heavy snow','❄️'],
+  77:['Snow grains','🌨️'],80:['Light showers','🌦️'],81:['Showers','🌧️'],82:['Heavy showers','⛈️'],
+  85:['Light snow showers','🌨️'],86:['Heavy snow showers','❄️'],95:['Thunderstorm','⛈️'],
+  96:['Thunderstorm with hail','⛈️'],99:['Heavy thunderstorm with hail','⛈️']
+};
+
+const BACKUP_QUOTES = [
+  "Be kind to everyone you meet today!","Today is a great day to learn something new!",
+  "You are brave and wonderful!","What adventure will you find today?",
+  "Read a book, change the world! 📚","Smile at someone today — it's contagious!",
+  "Try something you've never done before!","Be a good friend today!",
+  "The world is better because you're in it!","Every day is a chance to be awesome!",
+];
+
+const WIDGETS = {
+  calendar:{icon:'📅',name:'Calendar',preview:'9am Meeting\n12pm Lunch'},
+  upcoming:{icon:'🔮',name:'Coming Up',preview:'🎂 Birthday (3 days)\n🏖️ Beach Trip (Sat)'},
+  weather:{icon:'🌤️',name:'Weather',preview:'☀️ 24°C Sunny\nH:28° L:18°'},
+  sports:{icon:'⚽',name:'Sports',preview:'Arsenal\nWon 3-1 ✨',needsConfig:true,configType:'sports'},
+  quote:{icon:'💬',name:'Quote',preview:'"The only way to do\ngreat work..."'},
+  news:{icon:'📰',name:'News',preview:'Top Stories\n📌 Breaking...'},
+  history:{icon:'📜',name:'History',preview:'On this day...\nApollo 11 🌙'},
+  countdown:{icon:'⏳',name:'Countdown',preview:'12 days until\nHoliday! 🏖️',needsConfig:true,configType:'countdown'},
+  stocks:{icon:'📊',name:'Stocks',preview:'GOOG ▲ $182\n+1.2%',needsConfig:true,configType:'stocks'},
+};
+
+const GRID_COLS = 12, GRID_ROWS = 8;
+const DEFAULT_WIDGET_SIZE = {cols:2,rows:2};
+
+const AESTHETIC_STYLES = {
+  watercolor:{
+    intro:"Create a soft watercolour daily planner painted in loose, flowing washes on textured watercolour paper.",
+    scene:"The ENTIRE image is a dreamy watercolour painting.",
+    style_rules:"STYLE RULES: Soft watercolour washes, wet-on-wet blending. Loose, painterly brushwork.\nUse soft, blended colours: muted blues, warm yellows, gentle greens on a pure WHITE background.\nThe background MUST be plain white (#FFFFFF). Dreamy, gentle, and inviting. Text must be CLEARLY READABLE."
+  },
+  pixel:{
+    intro:"Create a retro 16-bit pixel art daily planner in classic video game style.",
+    scene:"The ENTIRE image is a pixel art scene, like a classic SNES game.",
+    style_rules:"STYLE RULES: Crisp pixel art, visible square pixels, limited colour palette.\nUse bold, saturated colours with clear outlines. Background MUST be white (#FFFFFF).\nCharming, nostalgic, retro. Text should be pixel-style but CLEARLY READABLE."
+  },
+  comic:{
+    intro:"Create a bold comic book style daily planner with thick ink lines and halftone dots.",
+    scene:"The ENTIRE image is a comic book panel illustration.",
+    style_rules:"STYLE RULES: Bold black ink outlines, halftone dot shading, comic book colouring.\nUse strong primary colours: red, blue, yellow. Background MUST be white (#FFFFFF).\nDynamic, energetic, fun. Text should be comic-style but CLEARLY READABLE."
+  },
+  japanese:{
+    intro:"Create a serene sumi-e daily planner in traditional brush painting style.",
+    scene:"The ENTIRE image is a sumi-e brush painting with elegant minimalism.",
+    style_rules:"STYLE RULES: Traditional Japanese ink wash (sumi-e). Flowing brush strokes.\nMostly black ink on white paper with occasional muted red and sage green.\nBackground MUST be white (#FFFFFF). Serene, contemplative. Text must be CLEARLY READABLE."
+  }
+};
+
+const DEFAULT_PROMPT_TEMPLATE = `Create a children's illustrated daily planner in pen-and-ink style on a clean white paper background with crosshatching. The output image MUST be EXACTLY 800×480 pixels — a wide landscape format (5:3 aspect ratio).
+
+CRITICAL FRAMING: Leave generous margins — at least 40 pixels of padding on ALL sides.
+
+LAYOUT — FULL-WIDTH SCENE WITH OVERLAID TEXT:
+
+The ENTIRE image is a single charming pen-and-ink illustration. {{SCENE_DESCRIPTION}} The scene fills the whole canvas.
+
+TOP: A ribbon banner reads: '{{BANNER_TEXT}}' in bold hand-drawn block letters.
+
+{{TEXT_LAYOUT}}
+{{EVENT_LIST}}
+
+RIGHT SIDE ({{RIGHT_WIDTH}}) — MAIN SCENE:
+{{CHARACTERS}}
+
+BOTTOM LEFT CORNER — WEATHER:
+{{WEATHER}}
+
+{{COUNTDOWN}}
+
+STYLE RULES: Pen-and-ink illustration, clean WHITE background, hand-drawn crosshatching, charming and whimsical.
+Use ONLY these colors: black ink on pure white paper, plus limited accents of red, green, blue, and yellow. The background MUST be plain white (#FFFFFF).
+Kid-friendly, warm, joyful. No scary elements.
+The text must be CLEARLY READABLE.
+Remember: 800×480 pixels, wide landscape, generous margins.
+
+{{REGION_GUIDANCE}}`;
+
+const FASHION_PROMPT_TEMPLATE = `Create a stylish fashion-illustration daily planner in high-end editorial sketch style. The output image MUST be EXACTLY 800×480 pixels — a wide landscape format (5:3 aspect ratio).
+
+CRITICAL FRAMING: Leave generous margins — at least 40 pixels of padding on ALL sides.
+
+LAYOUT — FULL-WIDTH SCENE WITH OVERLAID TEXT:
+
+The ENTIRE image is a single elegant fashion illustration. {{SCENE_DESCRIPTION}} Think high-fashion editorial meets daily planner.
+
+TOP: An elegant hand-lettered header reads: '{{BANNER_TEXT}}'.
+
+{{TEXT_LAYOUT}}
+{{EVENT_LIST}}
+
+RIGHT SIDE ({{RIGHT_WIDTH}}) — MAIN SCENE:
+{{CHARACTERS}}
+
+BOTTOM LEFT CORNER — WEATHER:
+{{WEATHER}}
+
+{{COUNTDOWN}}
+
+STYLE RULES: Fashion illustration / editorial sketch style. Confident loose ink lines, watercolor washes.
+Use ONLY: black ink on white paper, plus muted red, sage green, dusty blue, ochre yellow. Background MUST be white (#FFFFFF).
+Sophisticated, modern, editorial. Text must be CLEARLY READABLE.
+Remember: 800×480 pixels, wide landscape, generous margins.
+
+{{REGION_GUIDANCE}}`;
+
+// ─── State ─────────────────────────────────────────────────────
+let config = {};
+let generating = false;
+let latestImageDataUrl = null;
+let latestDitheredDataUrl = null;
+let placements = {};
+let widgetConfigs = {};
+
+// ─── Helpers ───────────────────────────────────────────────────
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+
+function showScreen(id) { $$('.screen').forEach(s => s.classList.remove('active')); $(`#${id}`).classList.add('active'); }
+function showPage(name) {
+  $$('.page').forEach(p => p.classList.remove('active'));
+  $(`#page-${name}`)?.classList.add('active');
+  $$('.nav-link').forEach(l => l.classList.remove('active'));
+  $(`.nav-link[data-page="${name}"]`)?.classList.add('active');
+  // Close mobile menu
+  $('#sidebar')?.classList.remove('open');
+  $('#sidebar-backdrop')?.classList.remove('open');
+}
+function toast(msg, type = 'info') {
+  const t = $('#toast'); t.textContent = msg;
+  t.className = `toast ${type}`; t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 3500);
+}
+function uuid() { return 'xxxxxxxx'.replace(/x/g, () => (Math.random()*16|0).toString(16)); }
+
+// ─── Config (localStorage) ─────────────────────────────────────
+function loadConfig() {
+  try { config = JSON.parse(localStorage.getItem('glanceboard_ais_config') || '{}'); } catch { config = {}; }
+  placements = config.layout_placements || {};
+  widgetConfigs = config.widget_configs || {};
+  return config;
+}
+function saveConfig() {
+  config.layout_placements = placements;
+  config.widget_configs = widgetConfigs;
+  localStorage.setItem('glanceboard_ais_config', JSON.stringify(config));
+}
+
+// ─── iCal Parser ───────────────────────────────────────────────
+function parseICalData(icalText, timezone, targetDate) {
+  if (!icalText) return [];
+  const tz = timezone || DEFAULT_TIMEZONE;
+  const target = targetDate || new Date();
+  const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  const targetEnd = new Date(targetStart); targetEnd.setDate(targetEnd.getDate() + 1);
+
+  const events = [];
+  const vevents = icalText.split('BEGIN:VEVENT');
+
+  for (let i = 1; i < vevents.length; i++) {
+    const block = vevents[i].split('END:VEVENT')[0];
+    const lines = block.split(/\r?\n/);
+
+    // Unfold continuation lines (lines starting with space/tab)
+    const unfolded = [];
+    for (const line of lines) {
+      if ((line.startsWith(' ') || line.startsWith('\t')) && unfolded.length > 0) {
+        unfolded[unfolded.length - 1] += line.substring(1);
+      } else {
+        unfolded.push(line);
+      }
+    }
+
+    let summary = '', location = '', dtstart = '', dtend = '', rrule = '';
+    for (const line of unfolded) {
+      if (line.startsWith('SUMMARY')) summary = line.split(':').slice(1).join(':').trim();
+      else if (line.startsWith('LOCATION')) location = line.split(':').slice(1).join(':').trim();
+      else if (line.startsWith('DTSTART')) dtstart = line;
+      else if (line.startsWith('DTEND')) dtend = line;
+      else if (line.startsWith('RRULE')) rrule = line.split(':').slice(1).join(':');
+    }
+
+    if (!summary && !dtstart) continue;
+
+    // Parse date
+    function parseICalDate(raw) {
+      if (!raw) return null;
+      const val = raw.includes(':') ? raw.split(':').pop().trim() : raw.trim();
+      if (val.length === 8) { // YYYYMMDD (all-day)
+        return { date: new Date(+val.slice(0,4), +val.slice(4,6)-1, +val.slice(6,8)), allDay: true };
+      }
+      // YYYYMMDDTHHMMSS or YYYYMMDDTHHMMSSZ
+      const y = +val.slice(0,4), mo = +val.slice(4,6)-1, d = +val.slice(6,8);
+      const h = +val.slice(9,11)||0, mi = +val.slice(11,13)||0, s = +val.slice(13,15)||0;
+      const isUtc = val.endsWith('Z') || raw.includes('TZID=UTC');
+      let dt;
+      if (isUtc) { dt = new Date(Date.UTC(y, mo, d, h, mi, s)); }
+      else { dt = new Date(y, mo, d, h, mi, s); }
+      return { date: dt, allDay: false };
+    }
+
+    const startParsed = parseICalDate(dtstart);
+    const endParsed = parseICalDate(dtend);
+    if (!startParsed) continue;
+
+    // Check if event falls on target date (basic — handles single events and simple recurrence)
+    function eventFallsOnDate(startP, rruleStr, targetStart, targetEnd) {
+      if (!rruleStr) {
+        // Non-recurring: check if event date overlaps target
+        const d = startP.date;
+        if (startP.allDay) {
+          return d >= targetStart && d < targetEnd;
+        }
+        return d >= targetStart && d < targetEnd;
+      }
+      // Basic RRULE support
+      const parts = {};
+      rruleStr.split(';').forEach(p => { const [k,v] = p.split('='); parts[k] = v; });
+      const freq = parts.FREQ;
+      const until = parts.UNTIL ? parseICalDate('X:' + parts.UNTIL)?.date : null;
+      const count = parts.COUNT ? parseInt(parts.COUNT) : 1000;
+
+      if (until && targetStart > until) return false;
+
+      const origDate = startP.date;
+      const dayOfWeek = origDate.getDay();
+      const dayOfMonth = origDate.getDate();
+      const month = origDate.getMonth();
+
+      if (freq === 'DAILY') return true;
+      if (freq === 'WEEKLY') {
+        if (parts.BYDAY) {
+          const dayMap = {SU:0,MO:1,TU:2,WE:3,TH:4,FR:5,SA:6};
+          const days = parts.BYDAY.split(',').map(d => dayMap[d]);
+          return days.includes(targetStart.getDay());
+        }
+        return targetStart.getDay() === dayOfWeek;
+      }
+      if (freq === 'MONTHLY') return targetStart.getDate() === dayOfMonth;
+      if (freq === 'YEARLY') return targetStart.getMonth() === month && targetStart.getDate() === dayOfMonth;
+      return false;
+    }
+
+    if (!eventFallsOnDate(startParsed, rrule, targetStart, targetEnd)) continue;
+
+    // Build event object for today
+    let startStr = 'All day';
+    let startIso = null;
+    if (!startParsed.allDay) {
+      // Adjust time for recurring events to target date
+      const dt = rrule ? new Date(targetStart.getFullYear(), targetStart.getMonth(), targetStart.getDate(),
+        startParsed.date.getHours(), startParsed.date.getMinutes()) : startParsed.date;
+      startStr = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+      startIso = dt.toISOString();
+    }
+
+    events.push({
+      summary: summary.replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\n/g, ' '),
+      start: startStr,
+      start_iso: startIso,
+      end_time: endParsed?.date?.toISOString() || null,
+      location: location.replace(/\\,/g, ',').replace(/\\n/g, ' ')
+    });
+  }
+
+  events.sort((a, b) => {
+    if (a.start === 'All day') return -1;
+    if (b.start === 'All day') return 1;
+    return (a.start || '').localeCompare(b.start || '');
+  });
+
+  return events;
+}
+
+async function fetchEventsFromICal(icalUrl, timezone, targetDate) {
+  if (!icalUrl) return [];
+  try {
+    // Try direct fetch first
+    let resp;
+    try {
+      resp = await fetch(icalUrl, { mode: 'cors' });
+    } catch {
+      // Fall back to CORS proxy
+      for (const proxy of CORS_PROXIES) {
+        try {
+          resp = await fetch(proxy + encodeURIComponent(icalUrl));
+          if (resp.ok) break;
+        } catch { continue; }
+      }
+    }
+    if (!resp || !resp.ok) return [];
+    const text = await resp.text();
+    return parseICalData(text, timezone, targetDate);
+  } catch (e) {
+    console.warn('iCal fetch failed:', e);
+    return [];
+  }
+}
+
+// ─── Weather ───────────────────────────────────────────────────
+async function fetchWeather(latitude, longitude, tempUnit = 'celsius') {
+  try {
+    const tp = tempUnit === 'celsius' ? 'celsius' : 'fahrenheit';
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=${tp}&forecast_days=1&timezone=auto`;
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const current = data.current || {};
+    const daily = data.daily || {};
+    const currentTemp = current.temperature_2m;
+    const weatherCode = current.weather_code || 0;
+    const [condition, emoji] = WMO_WEATHER_CODES[weatherCode] || ['Unknown', '🌡️'];
+    const high = (daily.temperature_2m_max || [null])[0];
+    const low = (daily.temperature_2m_min || [null])[0];
+    const unitSymbol = tempUnit === 'celsius' ? '°C' : '°F';
+    const displayTemp = high ?? currentTemp;
+    let tempC = displayTemp;
+    if (tempUnit !== 'celsius' && displayTemp != null) tempC = (displayTemp - 32) * 5 / 9;
+    let clothingHint = '';
+    if (tempC == null) clothingHint = '';
+    else if (tempC >= 30) clothingHint = 'light summer clothes (shorts, t-shirts, sun hats)';
+    else if (tempC >= 22) clothingHint = 'casual warm-weather clothes (t-shirts, light pants)';
+    else if (tempC >= 15) clothingHint = 'layers or light jumpers';
+    else if (tempC >= 8) clothingHint = 'warm clothes (jackets, long pants)';
+    else if (tempC >= 0) clothingHint = 'heavy winter clothes (coats, scarves, beanies)';
+    else clothingHint = 'very heavy winter gear (thick coats, gloves, boots)';
+    if ([51,53,55,61,63,65,80,81,82].includes(weatherCode)) clothingHint += ', and rain gear';
+    else if ([71,73,75,85,86].includes(weatherCode)) clothingHint += ', and snow gear';
+    return { temp: displayTemp, current_temp: currentTemp, unit_symbol: unitSymbol, condition, emoji, high, low, clothing_hint: clothingHint };
+  } catch (e) { console.warn('Weather fetch error:', e); return null; }
+}
+
+async function geocodeLocation(query) {
+  try {
+    const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`);
+    const data = await resp.json();
+    if (!data.results || !data.results.length) return null;
+    const r = data.results[0];
+    return { name: r.name, country: r.country || '', latitude: r.latitude, longitude: r.longitude };
+  } catch { return null; }
+}
+
+// ─── Gemini API Helpers ────────────────────────────────────────
+async function callGeminiText(prompt, apiKey, provider = 'google', textModel = null) {
+  const tm = textModel || DEFAULT_TEXT_MODEL;
+  if (provider === 'openrouter') {
+    const orModel = tm.startsWith('google/') ? tm : `google/${tm}`;
+    const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: orModel, messages: [{ role: 'user', content: prompt }], max_tokens: 2048 })
+    });
+    if (!resp.ok) throw new Error(`OpenRouter error: ${resp.status}`);
+    const data = await resp.json();
+    return data.choices[0].message.content.trim();
+  } else {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${tm}:generateContent?key=${apiKey}`;
+    const resp = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 2048, temperature: 0.7 } })
+    });
+    if (!resp.ok) throw new Error(`Gemini error: ${resp.status}`);
+    const data = await resp.json();
+    return data.candidates[0].content.parts[0].text.trim();
+  }
+}
+
+async function generateImageViaGemini(prompt, apiKey, model = 'gemini-3-pro-image', referenceImages = []) {
+  const geminiModel = model.replace('google/', '');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
+  const parts = [];
+  for (const ref of referenceImages) {
+    if (ref.startsWith('data:')) {
+      const [meta, b64] = ref.split(',');
+      const mimeType = meta.match(/data:(.*?);/)?.[1] || 'image/png';
+      parts.push({ inline_data: { mime_type: mimeType, data: b64 } });
+    }
+  }
+  parts.push({ text: prompt });
+  const payload = { contents: [{ parts }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (resp.status === 429) { await new Promise(r => setTimeout(r, 5000 * (attempt + 1))); continue; }
+      if (!resp.ok) { console.error('Gemini image error:', resp.status); continue; }
+      const data = await resp.json();
+      for (const candidate of (data.candidates || [])) {
+        for (const part of (candidate.content?.parts || [])) {
+          const imgData = part.inlineData || part.inline_data;
+          if (imgData) {
+            // Convert base64 to data URL
+            return `data:${imgData.mimeType || 'image/png'};base64,${imgData.data}`;
+          }
+        }
+      }
+      console.warn('No image in Gemini response, attempt', attempt + 1);
+    } catch (e) { console.error('Gemini image gen error:', e); }
+  }
+  return null;
+}
+
+// ─── Event Humanization ────────────────────────────────────────
+async function humanizeEvents(events, apiKey, provider, textModel, characters) {
+  if (!events.length || !apiKey) return events;
+  let peopleContext = '';
+  if (characters?.length) {
+    const names = characters.filter(c => c.name).map(c => c.name);
+    if (names.length) peopleContext = `\nThe family members: ${names.join(', ')}.\n`;
+  }
+  const eventLines = events.map((ev, i) => {
+    let line = `${i+1}. [${ev.start}] ${ev.summary}`;
+    if (ev.location) line += ` (at ${ev.location})`;
+    return line;
+  }).join('\n');
+  const prompt = `You are a friendly family assistant writing for an e-ink daily display.\n\nRewrite each calendar event into a SHORT, warm version.\nRules:\n- Max ~8 words per event\n- Add a relevant emoji\n- Convert 24h to 12h format\n- If "All day", don't include a time\n${peopleContext}\nEvents:\n${eventLines}\n\nRespond with ONLY the numbered list:\n1. 📚 9am — Tavi, remember library bag!\n2. 🏊 3:30pm — swimming`;
+
+  try {
+    const text = await callGeminiText(prompt, apiKey, provider, textModel);
+    const lines = text.split('\n').filter(l => l.trim());
+    for (const line of lines) {
+      const match = line.match(/^(\d+)[.)\s]+(.+)$/);
+      if (match) {
+        const idx = parseInt(match[1]) - 1;
+        if (idx >= 0 && idx < events.length) events[idx].humanized = match[2].trim();
+      }
+    }
+  } catch (e) { console.warn('Event humanization failed:', e); }
+  return events;
+}
+
+// ─── Scene Description ─────────────────────────────────────────
+async function describeScene(weather, season, apiKey, provider, textModel, locationName, events) {
+  if (!apiKey || !weather) return `The setting is a ${season} day.`;
+  const eventContext = events?.length ? `\nToday's activities: ${events.slice(0,5).map(e => e.humanized || e.summary).join(', ')}.` : '';
+  const prompt = `Describe the outdoor setting for a children's illustrated planner given:\n- Temperature: ${weather.temp}${weather.unit_symbol}\n- Condition: ${weather.condition}\n- Season: ${season}\n- Location: ${locationName || 'unspecified'}${eventContext}\n\nRules: Be realistic for the location. No snow unless below 2°C. Use regionally appropriate vegetation. 1-2 short sentences only. Do NOT mention people.`;
+  try {
+    let text = await callGeminiText(prompt, apiKey, provider, textModel);
+    return text.replace(/^["']|["']$/g, '');
+  } catch { return `The setting is a ${season} day, ${weather.temp}${weather.unit_symbol} and ${weather.condition}.`; }
+}
+
+// ─── Prompt Building ───────────────────────────────────────────
+function getSeason(month) {
+  const s = {12:'summer',1:'summer',2:'summer',3:'autumn',4:'autumn',5:'autumn',6:'winter',7:'winter',8:'winter',9:'spring',10:'spring',11:'spring'};
+  return s[month] || 'spring';
+}
+
+function computeEaster(year) {
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4;
+  const f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3);
+  const h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4;
+  const l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  return new Date(year, month-1, day);
+}
+
+function getUpcomingCountdowns(characters, today) {
+  const countdowns = [];
+  const daysAhead = 14;
+  for (const char of (characters || [])) {
+    if (!char.birthday) continue;
+    try {
+      const bday = new Date(char.birthday);
+      let thisYear = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
+      if (thisYear < today) thisYear = new Date(today.getFullYear() + 1, bday.getMonth(), bday.getDate());
+      const days = Math.round((thisYear - today) / 86400000);
+      if (days >= 0 && days <= daysAhead) countdowns.push({ name: `${char.name}'s birthday`, days_away: days, type: 'birthday' });
+    } catch {}
+  }
+  const holidays = [[11,25,'Christmas'],[0,1,"New Year's Day"],[1,14,"Valentine's Day"],[9,31,'Halloween']];
+  for (const [m,d,name] of holidays) {
+    let thisYear = new Date(today.getFullYear(), m, d);
+    if (thisYear < today) thisYear = new Date(today.getFullYear() + 1, m, d);
+    const days = Math.round((thisYear - today) / 86400000);
+    if (days >= 0 && days <= daysAhead) countdowns.push({ name, days_away: days, type: 'holiday' });
+  }
+  for (const yr of [today.getFullYear(), today.getFullYear() + 1]) {
+    const easter = computeEaster(yr);
+    const days = Math.round((easter - today) / 86400000);
+    if (days >= 0 && days <= daysAhead) { countdowns.push({ name: 'Easter', days_away: days, type: 'holiday' }); break; }
+  }
+  countdowns.sort((a, b) => a.days_away - b.days_away);
+  return countdowns;
+}
+
+function determineModeAndEvents(hour, todayEvents, tomorrowEvents) {
+  const now = new Date();
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const tomorrowName = new Date(now.getTime() + 86400000).toLocaleDateString('en-US', { weekday: 'long' });
+
+  if (!todayEvents.length && !tomorrowEvents.length) {
+    if (hour < 12) return ['today', 'GOOD MORNING!', []];
+    if (hour < 17) return ['today', 'GOOD AFTERNOON!', []];
+    return ['today', 'GOOD EVENING!', []];
+  }
+  if (hour < 10) {
+    if (todayEvents.length) return ['today', `THIS ${dayName.toUpperCase()}'S ADVENTURE!`, todayEvents];
+    return ['today', 'GOOD MORNING!', []];
+  }
+  // Filter remaining events
+  const remaining = todayEvents.filter(ev => {
+    if (!ev.start_iso) return hour < 15; // Keep all-day before 3pm
+    try { return new Date(ev.start_iso) > now; } catch { return true; }
+  });
+  if (remaining.length) {
+    if (hour < 15) return ['today', 'COMING UP TODAY!', remaining];
+    if (hour < 19) return ['today', 'THIS EVENING!', remaining];
+    return ['today', 'TONIGHT!', remaining];
+  }
+  if (tomorrowEvents.length) return ['tomorrow', `TOMORROW'S ADVENTURE (${tomorrowName.toUpperCase()})!`, tomorrowEvents];
+  if (hour < 17) return ['today', 'GOOD AFTERNOON!', []];
+  return ['today', 'GOOD EVENING!', []];
+}
+
+function buildPrompt(events, characters, promptTemplate, opts = {}) {
+  const { timezone = DEFAULT_TIMEZONE, mode = 'today', bannerText = '', charactersEnabled = true,
+    weather = null, aesthetic = 'whimsical', sceneDescription = '', locationName = '',
+    layoutPlacements = {}, widgetConfigs: wc = {}, widgetData = {} } = opts;
+
+  const now = new Date();
+  const rawSeason = getSeason(now.getMonth() + 1);
+  let scene = sceneDescription || (weather ? `The setting is a ${rawSeason} day (${weather.temp}${weather.unit_symbol}, ${weather.condition}).` : `The setting is a ${rawSeason} day.`);
+
+  // Region guidance
+  const regionParts = ['IMPORTANT REALISM RULES:', '- Do NOT include snow unless below 2°C.', '- Do NOT include animals foreign to the region.'];
+  if (locationName?.toLowerCase().includes('australia')) {
+    regionParts.push('- Set in Australia. No Northern Hemisphere animals. Use eucalyptus, not oak/pine.');
+  }
+  const regionGuidance = regionParts.join('\n');
+
+  const dayName = mode === 'tomorrow' ? new Date(now.getTime() + 86400000).toLocaleDateString('en-US', { weekday: 'long' }) : now.toLocaleDateString('en-US', { weekday: 'long' });
+  const banner = bannerText || (mode === 'tomorrow' ? `WHAT'S ON TOMORROW (${dayName.toUpperCase()})` : `THIS ${dayName.toUpperCase()}'S ADVENTURE!`);
+
+  // Event list
+  const eventItems = [];
+  if (events.length) {
+    for (const ev of events) {
+      if (ev.humanized) { eventItems.push(`• ${ev.humanized}`); }
+      else {
+        let t = ev.start;
+        if (t && t.includes(':')) {
+          try {
+            const [h, m] = t.split(':'); const hr = +h;
+            t = `${hr > 12 ? hr - 12 : (hr || 12)}:${m} ${hr < 12 ? 'AM' : 'PM'}`;
+          } catch {}
+        }
+        let item = `• ${t} — ${ev.summary}`;
+        if (ev.location) item += ` (${ev.location})`;
+        eventItems.push(item);
+      }
+    }
+  } else {
+    eventItems.push(`• ${BACKUP_QUOTES[Math.floor(Math.random() * BACKUP_QUOTES.length)]}`);
+  }
+  const eventListStr = eventItems.join('\n');
+  const eventCount = eventItems.length;
+
+  // Countdowns
+  const countdowns = getUpcomingCountdowns(characters || [], new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+  let countdownText = '';
+  const cdItems = [];
+  for (const cd of countdowns.slice(0, 3)) {
+    const emoji = { birthday: '🎂', holiday: '🎉' }[cd.type] || '📅';
+    if (cd.days_away === 0) cdItems.push(`${emoji} ${cd.name} is TODAY!`);
+    else if (cd.days_away === 1) cdItems.push(`⏰ ${cd.name} is TOMORROW!`);
+    else cdItems.push(`${emoji} ${cd.days_away} days until ${cd.name}!`);
+  }
+  if (cdItems.length) countdownText = `BOTTOM RIGHT CORNER — COUNTDOWN:\n${cdItems.join('\n')}`;
+
+  // Characters
+  let charSection = '';
+  if (charactersEnabled && characters?.length) {
+    const descs = characters.map((c, i) => {
+      const gw = c.gender === 'female' ? (c.age >= 18 ? 'woman' : 'girl') : (c.gender === 'male' ? (c.age >= 18 ? 'man' : 'boy') : 'person');
+      return `${i+1}) A ${gw} named ${c.name}${c.age ? `, age ${c.age}` : ''}. ${c.description || ''}`;
+    }).join('\n');
+    let clothingNote = '';
+    if (weather?.clothing_hint) clothingNote = `\nIMPORTANT: Today's high is ${weather.temp}${weather.unit_symbol}. Characters should wear ${weather.clothing_hint}.`;
+    charSection = `\n\nCHARACTERS (in the scene):\n${descs}${clothingNote}`;
+  }
+
+  // Weather section
+  let weatherSection = '';
+  if (weather) {
+    let badge = `${weather.emoji} ${weather.temp}${weather.unit_symbol} ${weather.condition}`;
+    if (weather.high != null) badge += ` (H:${weather.high}${weather.unit_symbol} L:${weather.low}${weather.unit_symbol})`;
+    weatherSection = `Draw a small weather badge reading: '${badge}'.`;
+  }
+
+  // Text layout
+  let textLayout, rightWidth;
+  if (eventCount <= 2) { textLayout = 'LEFT SIDE — COMPACT TEXT OVERLAY (25% width):\nKeep text block short and centred.'; rightWidth = '75%'; }
+  else if (eventCount <= 5) { textLayout = 'LEFT SIDE — TEXT OVERLAY (35% width):\nPlace schedule on the left, vertically centred.'; rightWidth = '65%'; }
+  else { textLayout = 'LEFT SIDE (40% width) — TEXT OVERLAY:\nOverlaid list of schedule items.'; rightWidth = '60%'; }
+  textLayout += '\nEvents:\n';
+
+  // Dynamic layout mode
+  if (Object.keys(layoutPlacements).length && !(promptTemplate?.trim())) {
+    const aesInfo = getAestheticInfo(aesthetic);
+    const parts = [`LAYOUT (12×8 grid):\nThe image is a single illustration. ${scene}\n- HEADER: '${banner}'`];
+    for (const [key, p] of Object.entries(layoutPlacements)) {
+      if (key === 'calendar' && eventListStr.trim()) parts.push(`- CALENDAR (col ${p.col}, row ${p.row}):\n${eventListStr}`);
+      else if (key === 'weather' && weatherSection) parts.push(`- WEATHER (col ${p.col}, row ${p.row}): ${weatherSection}`);
+      else if (key === 'quote') parts.push(`- QUOTE (col ${p.col}, row ${p.row}): "${BACKUP_QUOTES[Math.floor(Math.random() * BACKUP_QUOTES.length)]}"`);
+      else if (key === 'countdown' && countdownText) parts.push(`- COUNTDOWN (col ${p.col}, row ${p.row}):\n${cdItems.join('\n')}`);
+    }
+    if (charSection) parts.push(`- CHARACTERS: ${charSection}`);
+    return `Create a daily planner in ${aesInfo.intro} style on WHITE background. 800×480 pixels landscape.\n\nLeave 40px margins on all sides.\n\n${parts.join('\n\n')}\n\n${aesInfo.style_rules}\n\n${regionGuidance}\n\n800×480 pixels, white background.`;
+  }
+
+  // Standard template substitution
+  let template = promptTemplate?.trim() || (aesthetic === 'fashion' ? FASHION_PROMPT_TEMPLATE : DEFAULT_PROMPT_TEMPLATE);
+  // Apply aesthetic overrides
+  if (!(promptTemplate?.trim()) && aesthetic !== 'whimsical' && aesthetic !== 'fashion') {
+    const style = AESTHETIC_STYLES[aesthetic];
+    if (style) {
+      const lines = template.split('\n');
+      if (lines.length) lines[0] = style.intro + ' The output image MUST be EXACTLY 800×480 pixels — wide landscape.';
+      template = lines.join('\n');
+      template = template.replace(/STYLE RULES:[\s\S]*?(?=Remember:|$)/, style.style_rules + '\n');
+    }
+  }
+
+  return template
+    .replace('{{DAY_NAME}}', dayName).replace('{{BANNER_TEXT}}', banner).replace('{{SCENE_DESCRIPTION}}', scene)
+    .replace('{{SEASON}}', rawSeason).replace('{{TEXT_LAYOUT}}', textLayout).replace('{{RIGHT_WIDTH}}', rightWidth)
+    .replace('{{EVENT_LIST}}', eventListStr).replace('{{CHARACTERS}}', charSection)
+    .replace('{{WEATHER}}', weatherSection).replace('{{COUNTDOWN}}', countdownText)
+    .replace('{{REGION_GUIDANCE}}', regionGuidance).replace('{{BIRTHDAY}}', '').replace('{{MODE}}', mode);
+}
+
+function getAestheticInfo(aesthetic) {
+  if (aesthetic === 'fashion') return { intro: 'stylish fashion-illustration daily planner in editorial sketch', style_rules: 'Fashion illustration style. Confident ink lines, watercolor washes. Background MUST be white (#FFFFFF). Text must be CLEARLY READABLE.' };
+  if (AESTHETIC_STYLES[aesthetic]) {
+    const s = AESTHETIC_STYLES[aesthetic];
+    return { intro: s.intro.replace('Create a ', '').replace('.', ''), style_rules: s.style_rules };
+  }
+  return { intro: "children's illustrated daily planner in pen-and-ink", style_rules: 'Pen-and-ink, WHITE background, crosshatching. Background MUST be white (#FFFFFF). Text must be CLEARLY READABLE.' };
+}
+
+// ─── Floyd-Steinberg Dithering (Canvas) ────────────────────────
+function resizeAndDither(imageDataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      // Resize canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = DISPLAY_WIDTH; canvas.height = DISPLAY_HEIGHT;
+      const ctx = canvas.getContext('2d');
+
+      // Center crop
+      const targetRatio = DISPLAY_WIDTH / DISPLAY_HEIGHT;
+      const imgRatio = img.width / img.height;
+      let sx = 0, sy = 0, sw = img.width, sh = img.height;
+      if (imgRatio > targetRatio) { sw = img.height * targetRatio; sx = (img.width - sw) / 2; }
+      else if (imgRatio < targetRatio) { sh = img.width / targetRatio; sy = (img.height - sh) / 2; }
+
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+      const fullColorUrl = canvas.toDataURL('image/png');
+
+      // Floyd-Steinberg dithering
+      const imageData = ctx.getImageData(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+      const pixels = imageData.data;
+      const palette = [[0,0,0],[255,255,255],[200,30,30],[0,128,0],[0,50,180],[230,200,0]];
+
+      function findClosest(r, g, b) {
+        let minDist = Infinity, best = 0;
+        for (let i = 0; i < palette.length; i++) {
+          const dr = r - palette[i][0], dg = g - palette[i][1], db = b - palette[i][2];
+          const dist = dr*dr + dg*dg + db*db;
+          if (dist < minDist) { minDist = dist; best = i; }
+        }
+        return palette[best];
+      }
+
+      const w = DISPLAY_WIDTH, h = DISPLAY_HEIGHT;
+      // Convert to float for error diffusion
+      const fp = new Float32Array(w * h * 3);
+      for (let i = 0; i < w * h; i++) {
+        fp[i*3] = pixels[i*4]; fp[i*3+1] = pixels[i*4+1]; fp[i*3+2] = pixels[i*4+2];
+      }
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 3;
+          const or = fp[idx], og = fp[idx+1], ob = fp[idx+2];
+          const [nr, ng, nb] = findClosest(or, og, ob);
+          fp[idx] = nr; fp[idx+1] = ng; fp[idx+2] = nb;
+          const er = or - nr, eg = og - ng, eb = ob - nb;
+          if (x+1 < w) { const i2 = idx+3; fp[i2] += er*7/16; fp[i2+1] += eg*7/16; fp[i2+2] += eb*7/16; }
+          if (y+1 < h) {
+            if (x-1 >= 0) { const i2 = ((y+1)*w+x-1)*3; fp[i2] += er*3/16; fp[i2+1] += eg*3/16; fp[i2+2] += eb*3/16; }
+            { const i2 = ((y+1)*w+x)*3; fp[i2] += er*5/16; fp[i2+1] += eg*5/16; fp[i2+2] += eb*5/16; }
+            if (x+1 < w) { const i2 = ((y+1)*w+x+1)*3; fp[i2] += er/16; fp[i2+1] += eg/16; fp[i2+2] += eb/16; }
+          }
+        }
+      }
+
+      // Write back
+      for (let i = 0; i < w * h; i++) {
+        pixels[i*4] = Math.max(0, Math.min(255, fp[i*3]));
+        pixels[i*4+1] = Math.max(0, Math.min(255, fp[i*3+1]));
+        pixels[i*4+2] = Math.max(0, Math.min(255, fp[i*3+2]));
+      }
+      ctx.putImageData(imageData, 0, 0);
+      const ditheredUrl = canvas.toDataURL('image/png');
+      resolve({ fullColor: fullColorUrl, dithered: ditheredUrl });
+    };
+    img.src = imageDataUrl;
+  });
+}
+
+// ─── Full Generation Pipeline ──────────────────────────────────
+async function runGeneration() {
+  if (generating) return;
+  generating = true;
+  const progressBar = $('#generation-progress');
+  const progressFill = progressBar?.querySelector('.progress-fill');
+  const progressText = progressBar?.querySelector('.progress-text');
+  progressBar?.classList.remove('hidden');
+
+  function setProgress(pct, msg) {
+    if (progressFill) progressFill.style.width = pct + '%';
+    if (progressText) progressText.textContent = msg;
+  }
+
+  try {
+    const apiKey = config.openrouter_api_key || config.api_key || '';
+    const provider = config.api_provider || 'google';
+    const icalUrl = config.ical_url || '';
+    const tz = config.timezone || DEFAULT_TIMEZONE;
+    const lat = config.latitude, lon = config.longitude;
+    const tempUnit = config.temp_unit || 'celsius';
+    const model = config.image_model || 'google/gemini-3-pro-image';
+    const textModel = config.text_model || DEFAULT_TEXT_MODEL;
+    const charsEnabled = config.characters_enabled !== false;
+    const aesthetic = config.aesthetic || 'whimsical';
+    const characters = config.characters || [];
+
+    if (!apiKey) { toast('Please add an API key in Settings', 'error'); return; }
+
+    setProgress(5, 'Fetching calendar events...');
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    let todayEvents = [], tomorrowEvents = [];
+    if (icalUrl) {
+      todayEvents = await fetchEventsFromICal(icalUrl, tz, today);
+      tomorrowEvents = await fetchEventsFromICal(icalUrl, tz, tomorrow);
+    }
+    setProgress(15, `Found ${todayEvents.length} events today...`);
+
+    const hour = now.getHours();
+    const [mode, bannerText, events] = determineModeAndEvents(hour, todayEvents, tomorrowEvents);
+    setProgress(20, 'Fetching weather...');
+
+    let weather = null;
+    if (lat && lon) weather = await fetchWeather(lat, lon, tempUnit);
+    setProgress(30, 'Humanizing events via Gemini...');
+
+    const humanizedEvents = await humanizeEvents(events, apiKey, provider, textModel, characters);
+    setProgress(40, 'Generating scene description...');
+
+    const season = getSeason(now.getMonth() + 1);
+    const locationName = config.location_name || '';
+    const sceneDesc = await describeScene(weather, season, apiKey, provider, textModel, locationName, humanizedEvents);
+    setProgress(50, 'Building prompt...');
+
+    const promptTemplate = config.prompt_template || '';
+    const prompt = buildPrompt(humanizedEvents, characters, promptTemplate, {
+      timezone: tz, mode, bannerText, charactersEnabled: charsEnabled,
+      weather, aesthetic, sceneDescription: sceneDesc, locationName,
+      layoutPlacements: placements, widgetConfigs, widgetData: {}
+    });
+
+    setProgress(55, 'Generating image via Gemini (this may take 30-60s)...');
+
+    // Collect reference images
+    const refImages = [];
+    if (charsEnabled) {
+      for (const c of characters) { if (c.imageUrl) refImages.push(c.imageUrl); }
+    }
+
+    const imageDataUrl = await generateImageViaGemini(prompt, apiKey, model, refImages);
+    if (!imageDataUrl) { toast('Image generation failed. Try again.', 'error'); return; }
+
+    setProgress(85, 'Dithering for e-ink display...');
+    const { fullColor, dithered } = await resizeAndDither(imageDataUrl);
+    latestImageDataUrl = fullColor;
+    latestDitheredDataUrl = dithered;
+
+    setProgress(95, 'Saving...');
+
+    // Update status
+    config.status = {
+      last_generated: new Date().toISOString(),
+      last_prompt: prompt,
+      last_mode: mode,
+      last_banner: bannerText,
+      events_count: events.length,
+      last_weather: weather ? `${weather.emoji} ${weather.temp}${weather.unit_symbol} ${weather.condition}` : null,
+      image_model: model,
+    };
+    // Save images as data URLs in localStorage (they're large but it works)
+    config.latest_image = fullColor;
+    config.latest_dithered = dithered;
+    saveConfig();
+
+    setProgress(100, 'Done! 🎉');
+    toast('Image generated successfully!', 'success');
+    loadDashboard();
+  } catch (e) {
+    console.error('Generation failed:', e);
+    toast(`Generation failed: ${e.message}`, 'error');
+  } finally {
+    generating = false;
+    setTimeout(() => progressBar?.classList.add('hidden'), 2000);
+  }
+}
+
+// ─── Dashboard ─────────────────────────────────────────────────
+function loadDashboard() {
+  const status = config.status || {};
+  const container = $('#latest-image-container');
+  const imgSrc = config.latest_image || latestImageDataUrl;
+
+  if (imgSrc) {
+    container.innerHTML = `<img src="${imgSrc}" alt="Latest generated display">`;
+    $('#image-actions')?.classList.remove('hidden');
+    latestImageDataUrl = imgSrc;
+    latestDitheredDataUrl = config.latest_dithered || latestDitheredDataUrl;
+  }
+
+  $('#stat-last-gen').textContent = status.last_generated ? new Date(status.last_generated).toLocaleString() : '—';
+  $('#stat-mode').textContent = status.last_mode || '—';
+  $('#stat-events').textContent = status.events_count ?? '—';
+  $('#stat-weather').textContent = status.last_weather || '—';
+  $('#stat-chars').textContent = (config.characters || []).length || '—';
+  $('#stat-model').textContent = (config.image_model || 'gemini-3-pro-image').replace('google/', '');
+
+  if (status.last_prompt) {
+    $('#last-prompt-card')?.classList.remove('hidden');
+    $('#last-prompt-text').textContent = status.last_prompt;
+  }
+}
+
+// ─── Characters UI ─────────────────────────────────────────────
+function renderCharacters() {
+  const chars = config.characters || [];
+  const kids = chars.filter(c => c.type === 'kid');
+  const extras = chars.filter(c => c.type === 'extra');
+
+  const renderGrid = (list, containerId) => {
+    const grid = $(containerId);
+    grid.innerHTML = '';
+    for (const c of list) {
+      const card = document.createElement('div');
+      card.className = 'character-card';
+      card.innerHTML = `${c.imageUrl ? `<img src="${c.imageUrl}" alt="${c.name}">` : '<div style="width:100%;aspect-ratio:1;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:8px">👤</div>'}
+        <h4>${c.name || 'Unnamed'}</h4><p>${c.description || ''}</p>`;
+      card.onclick = () => openCharacterModal(c);
+      grid.appendChild(card);
+    }
+  };
+  renderGrid(kids, '#kids-grid');
+  renderGrid(extras, '#extras-grid');
+}
+
+function openCharacterModal(char) {
+  const modal = $('#character-modal');
+  const isNew = !char;
+  $('#modal-title').textContent = isNew ? 'Add Character' : 'Edit Character';
+  $('#char-id').value = char?.id || uuid();
+  $('#char-type').value = char?.type || 'kid';
+  $('#char-name').value = char?.name || '';
+  $('#char-gender').value = char?.gender || 'male';
+  $('#char-age').value = char?.age || '';
+  $('#char-birthday').value = char?.birthday || '';
+  $('#char-description').value = char?.description || '';
+
+  const isExtra = (char?.type === 'extra');
+  $('#gender-group').style.display = isExtra ? 'none' : '';
+  $('#age-group').style.display = isExtra ? 'none' : '';
+  $('#birthday-group').style.display = isExtra ? 'none' : '';
+  $('#modal-delete').classList.toggle('hidden', isNew);
+
+  // Reset image preview
+  const preview = $('#char-image-preview');
+  if (char?.imageUrl) {
+    preview.innerHTML = `<img src="${char.imageUrl}" style="max-width:100%;max-height:150px">`;
+  } else {
+    preview.innerHTML = '<span class="upload-icon">📷</span><span>Click or drag to upload</span>';
+  }
+
+  modal.showModal();
+}
+
+// ─── Settings UI ───────────────────────────────────────────────
+function loadSettings() {
+  $('#setting-ical-url').value = config.ical_url || '';
+  $('#setting-location').value = config.location_name || '';
+  $('#setting-api-provider').value = config.api_provider || 'google';
+  $('#setting-api-key').value = config.api_key || config.openrouter_api_key || '';
+  $('#setting-timezone').value = config.timezone || DEFAULT_TIMEZONE;
+  $('#setting-model').value = config.image_model || 'google/gemini-3-pro-image';
+  $('#setting-text-model').value = config.text_model || DEFAULT_TEXT_MODEL;
+  $('#setting-characters').checked = config.characters_enabled !== false;
+
+  const tempUnit = config.temp_unit || 'celsius';
+  $$('input[name="setting-temp-unit"]').forEach(r => r.checked = r.value === tempUnit);
+
+  // Aesthetic
+  const ae = config.aesthetic || 'whimsical';
+  $$('input[name="aesthetic"]').forEach(r => {
+    r.checked = r.value === ae || (r.value === 'custom' && !['whimsical','fashion','watercolor','pixel','comic','japanese'].includes(ae));
+  });
+  if (!['whimsical','fashion','watercolor','pixel','comic','japanese'].includes(ae)) {
+    $('#custom-aesthetic-group')?.classList.remove('hidden');
+    $('#custom-aesthetic-input').value = ae;
+  }
+
+  // Prompt template
+  $('#prompt-template').value = config.prompt_template || '';
+
+  // Layout
+  renderWidgetTray();
+  renderCanvasGrid();
+}
+
+function saveSettings() {
+  const provider = $('#setting-api-provider').value;
+  const apiKey = $('#setting-api-key').value;
+  if (provider === 'google') { config.api_key = apiKey; config.api_provider = 'google'; }
+  else { config.openrouter_api_key = apiKey; config.api_provider = 'openrouter'; }
+
+  config.ical_url = $('#setting-ical-url').value;
+  config.timezone = $('#setting-timezone').value;
+  config.image_model = $('#setting-model').value;
+  config.text_model = $('#setting-text-model').value;
+  config.characters_enabled = $('#setting-characters').checked;
+  config.temp_unit = document.querySelector('input[name="setting-temp-unit"]:checked')?.value || 'celsius';
+
+  const aeRadio = document.querySelector('input[name="aesthetic"]:checked');
+  if (aeRadio) {
+    config.aesthetic = aeRadio.value === 'custom' ? ($('#custom-aesthetic-input').value || 'whimsical') : aeRadio.value;
+  }
+
+  saveConfig();
+  toast('Settings saved!', 'success');
+}
+
+// ─── Layout Builder ────────────────────────────────────────────
+function renderWidgetTray() {
+  const tray = $('#widget-tray');
+  if (!tray) return;
+  tray.innerHTML = '';
+  for (const [key, w] of Object.entries(WIDGETS)) {
+    const chip = document.createElement('div');
+    chip.className = `widget-chip${placements[key] ? ' placed' : ''}`;
+    chip.draggable = !placements[key];
+    chip.innerHTML = `${w.icon} ${w.name}`;
+    chip.dataset.widget = key;
+    if (!placements[key]) {
+      chip.ondragstart = (e) => { e.dataTransfer.setData('widget', key); };
+    }
+    tray.appendChild(chip);
+  }
+}
+
+function renderCanvasGrid() {
+  const grid = $('#canvas-grid');
+  if (!grid) return;
+  // Clear cells (keep drop-preview)
+  grid.querySelectorAll('.grid-cell, .widget-placed').forEach(el => el.remove());
+
+  // Background cells
+  for (let r = 1; r <= GRID_ROWS; r++) {
+    for (let c = 1; c <= GRID_COLS; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'grid-cell';
+      cell.style.gridColumn = c; cell.style.gridRow = r;
+      cell.ondragover = e => e.preventDefault();
+      cell.ondrop = e => {
+        e.preventDefault();
+        const wk = e.dataTransfer.getData('widget');
+        if (wk && !placements[wk]) {
+          placements[wk] = { col: c, row: r, cols: DEFAULT_WIDGET_SIZE.cols, rows: DEFAULT_WIDGET_SIZE.rows };
+          saveConfig(); renderCanvasGrid(); renderWidgetTray();
+        }
+      };
+      grid.appendChild(cell);
+    }
+  }
+
+  // Placed widgets
+  for (const [key, p] of Object.entries(placements)) {
+    const w = WIDGETS[key];
+    if (!w) continue;
+    const el = document.createElement('div');
+    el.className = 'widget-placed';
+    el.style.gridColumn = `${p.col} / span ${p.cols}`;
+    el.style.gridRow = `${p.row} / span ${p.rows}`;
+    el.innerHTML = `${w.icon} ${w.name}<span class="widget-remove" data-widget="${key}">✕</span>`;
+    el.querySelector('.widget-remove').onclick = (e) => {
+      e.stopPropagation();
+      delete placements[key];
+      saveConfig(); renderCanvasGrid(); renderWidgetTray();
+    };
+    grid.appendChild(el);
+  }
+}
+
+// ─── Event Listeners ───────────────────────────────────────────
+// ─── Display Mode ──────────────────────────────────────────────
+// When ?display is in the URL, serve only the latest dithered image
+// This is the URL the PhotoPainter ESP32 fetches from
+function getDisplayUrl() {
+  const base = window.location.origin + window.location.pathname;
+  return base + '?display';
+}
+
+function enterDisplayMode() {
+  // Hide everything and show only the image
+  document.getElementById('app').style.display = 'none';
+  const screen = document.createElement('div');
+  screen.className = 'display-mode-screen';
+  try {
+    const cfg = JSON.parse(localStorage.getItem('glanceboard_ais_config') || '{}');
+    const imgSrc = cfg.latest_dithered || cfg.latest_image;
+    if (imgSrc) {
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      img.alt = 'Glanceboard Display';
+      img.style.width = '800px';
+      img.style.height = '480px';
+      screen.appendChild(img);
+      const meta = document.createElement('div');
+      meta.className = 'display-mode-meta';
+      const lastGen = cfg.status?.last_generated ? new Date(cfg.status.last_generated).toLocaleString() : 'unknown';
+      meta.textContent = `Last generated: ${lastGen}`;
+      screen.appendChild(meta);
+    } else {
+      screen.innerHTML = '<p style="color:#666;font-size:14px">No image generated yet. Open the dashboard to generate one.</p>';
+    }
+  } catch {
+    screen.innerHTML = '<p style="color:#666;font-size:14px">No image available.</p>';
+  }
+  document.body.appendChild(screen);
+}
+
+// Check for display mode BEFORE anything else
+if (window.location.search.includes('display')) {
+  document.addEventListener('DOMContentLoaded', enterDisplayMode);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // If in display mode, don't init the UI
+  if (window.location.search.includes('display')) return;
+
+  loadConfig();
+
+  // Check if configured
+  if (!config.ical_url && !config.api_key && !config.openrouter_api_key) {
+    showScreen('onboarding-screen');
+  } else {
+    showScreen('main-screen');
+    loadDashboard();
+    loadSettings();
+    renderCharacters();
+  }
+
+  // Navigation
+  $$('.nav-link').forEach(link => {
+    link.onclick = e => { e.preventDefault(); showPage(link.dataset.page); };
+  });
+
+  // Mobile menu
+  $('#mobile-menu-btn')?.addEventListener('click', () => {
+    $('#sidebar')?.classList.toggle('open');
+    $('#sidebar-backdrop')?.classList.toggle('open');
+  });
+  $('#sidebar-backdrop')?.addEventListener('click', () => {
+    $('#sidebar')?.classList.remove('open');
+    $('#sidebar-backdrop')?.classList.remove('open');
+  });
+
+  // Generate button
+  $('#generate-btn')?.addEventListener('click', runGeneration);
+
+  // Download buttons
+  $('#download-full-btn')?.addEventListener('click', () => {
+    if (latestImageDataUrl) { const a = document.createElement('a'); a.href = latestImageDataUrl; a.download = 'glanceboard.png'; a.click(); }
+  });
+  $('#download-dithered-btn')?.addEventListener('click', () => {
+    if (latestDitheredDataUrl) { const a = document.createElement('a'); a.href = latestDitheredDataUrl; a.download = 'glanceboard_eink.png'; a.click(); }
+  });
+
+  // Onboarding
+  let onboardData = { latitude: null, longitude: null, location_name: '' };
+
+  $('#onboard-next-1')?.addEventListener('click', () => {
+    const key = $('#onboard-api-key').value.trim();
+    const provider = $('#onboard-api-provider').value;
+    if (!key) { toast('Please enter an API key', 'warning'); return; }
+    if (provider === 'google') config.api_key = key;
+    else config.openrouter_api_key = key;
+    config.api_provider = provider;
+    saveConfig();
+    $('#onboard-step-1').classList.remove('active');
+    $('#onboard-step-2').classList.add('active');
+  });
+
+  $('#onboard-skip')?.addEventListener('click', () => {
+    showScreen('main-screen');
+    loadSettings(); renderCharacters();
+  });
+
+  $('#onboard-next-2')?.addEventListener('click', () => {
+    config.ical_url = $('#onboard-ical').value.trim();
+    config.timezone = $('#onboard-timezone').value;
+    saveConfig();
+    $('#onboard-step-2').classList.remove('active');
+    $('#onboard-step-3').classList.add('active');
+  });
+
+  $('#onboard-back-2')?.addEventListener('click', () => {
+    $('#onboard-step-2').classList.remove('active');
+    $('#onboard-step-1').classList.add('active');
+  });
+
+  $('#onboard-geocode-btn')?.addEventListener('click', async () => {
+    const q = $('#onboard-location').value.trim();
+    if (!q) return;
+    const result = await geocodeLocation(q);
+    if (result) {
+      onboardData.latitude = result.latitude;
+      onboardData.longitude = result.longitude;
+      onboardData.location_name = `${result.name}, ${result.country}`;
+      $('#onboard-location-result').textContent = `✅ Found: ${onboardData.location_name} (${result.latitude.toFixed(2)}, ${result.longitude.toFixed(2)})`;
+    } else {
+      $('#onboard-location-result').textContent = '❌ Location not found. Try a different name.';
+    }
+  });
+
+  $('#onboard-next-3')?.addEventListener('click', () => {
+    config.latitude = onboardData.latitude;
+    config.longitude = onboardData.longitude;
+    config.location_name = onboardData.location_name;
+    config.temp_unit = document.querySelector('input[name="onboard-temp-unit"]:checked')?.value || 'celsius';
+    saveConfig();
+    // Update summary
+    $('#summary-api').textContent = config.api_key ? 'API key configured ✅' : 'OpenRouter key configured ✅';
+    $('#summary-cal').textContent = config.ical_url ? 'Calendar connected ✅' : 'No calendar (skip)';
+    $('#summary-weather').textContent = config.location_name ? `${config.location_name} ✅` : 'No location set';
+    $('#onboard-step-3').classList.remove('active');
+    $('#onboard-step-4').classList.add('active');
+  });
+
+  $('#onboard-back-3')?.addEventListener('click', () => {
+    $('#onboard-step-3').classList.remove('active');
+    $('#onboard-step-2').classList.add('active');
+  });
+
+  $('#onboard-finish')?.addEventListener('click', () => {
+    showScreen('main-screen');
+    loadDashboard(); loadSettings(); renderCharacters();
+  });
+
+  // Settings geocode
+  $('#setting-geocode-btn')?.addEventListener('click', async () => {
+    const q = $('#setting-location').value.trim();
+    if (!q) return;
+    const result = await geocodeLocation(q);
+    if (result) {
+      config.latitude = result.latitude;
+      config.longitude = result.longitude;
+      config.location_name = `${result.name}, ${result.country}`;
+      saveConfig();
+      $('#setting-location-result').textContent = `✅ ${config.location_name} (${result.latitude.toFixed(2)}, ${result.longitude.toFixed(2)})`;
+    } else {
+      $('#setting-location-result').textContent = '❌ Not found';
+    }
+  });
+
+  // Save settings
+  $('#save-settings-btn')?.addEventListener('click', saveSettings);
+
+  // Aesthetic toggle
+  $$('input[name="aesthetic"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      $('#custom-aesthetic-group')?.classList.toggle('hidden', radio.value !== 'custom');
+      config.aesthetic = radio.value === 'custom' ? ($('#custom-aesthetic-input').value || 'whimsical') : radio.value;
+      saveConfig();
+    });
+  });
+
+  // Prompt
+  $('#save-prompt-btn')?.addEventListener('click', () => {
+    config.prompt_template = $('#prompt-template').value;
+    saveConfig();
+    toast('Prompt template saved!', 'success');
+  });
+
+  $('#reset-prompt-btn')?.addEventListener('click', () => {
+    config.prompt_template = '';
+    $('#prompt-template').value = '';
+    saveConfig();
+    toast('Prompt reset to default', 'info');
+  });
+
+  $('#preview-prompt-btn')?.addEventListener('click', async () => {
+    const prompt = buildPrompt([], config.characters || [], config.prompt_template, {
+      timezone: config.timezone, aesthetic: config.aesthetic || 'whimsical',
+      weather: { temp: 22, unit_symbol: '°C', condition: 'Partly cloudy', emoji: '⛅', high: 24, low: 16, clothing_hint: 'casual clothes' },
+      locationName: config.location_name
+    });
+    $('#prompt-preview').classList.remove('hidden');
+    $('#prompt-preview-text').textContent = prompt;
+  });
+
+  // Characters
+  $('#add-kid-btn')?.addEventListener('click', () => openCharacterModal({ type: 'kid', id: uuid() }));
+  $('#add-extra-btn')?.addEventListener('click', () => openCharacterModal({ type: 'extra', id: uuid() }));
+
+  $('#modal-cancel')?.addEventListener('click', () => $('#character-modal').close());
+  $('#modal-delete')?.addEventListener('click', () => {
+    const id = $('#char-id').value;
+    config.characters = (config.characters || []).filter(c => c.id !== id);
+    saveConfig(); renderCharacters();
+    $('#character-modal').close();
+    toast('Character deleted', 'info');
+  });
+
+  $('#character-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = $('#char-id').value;
+    const type = $('#char-type').value;
+    const charData = {
+      id, type,
+      name: $('#char-name').value,
+      gender: type === 'kid' ? $('#char-gender').value : undefined,
+      age: type === 'kid' ? parseInt($('#char-age').value) || undefined : undefined,
+      birthday: type === 'kid' ? $('#char-birthday').value || undefined : undefined,
+      description: $('#char-description').value,
+    };
+
+    // Preserve existing imageUrl
+    const existing = (config.characters || []).find(c => c.id === id);
+    if (existing?.imageUrl) charData.imageUrl = existing.imageUrl;
+
+    if (!config.characters) config.characters = [];
+    const idx = config.characters.findIndex(c => c.id === id);
+    if (idx >= 0) config.characters[idx] = charData;
+    else config.characters.push(charData);
+
+    saveConfig(); renderCharacters();
+    $('#character-modal').close();
+    toast('Character saved!', 'success');
+  });
+
+  // Character image upload
+  $('#char-image-area')?.addEventListener('click', () => $('#char-image').click());
+  $('#char-image')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const id = $('#char-id').value;
+      if (!config.characters) config.characters = [];
+      const char = config.characters.find(c => c.id === id);
+      if (char) char.imageUrl = dataUrl;
+      else config.characters.push({ id, imageUrl: dataUrl });
+      saveConfig();
+      $('#char-image-preview').innerHTML = `<img src="${dataUrl}" style="max-width:100%;max-height:150px">`;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Export/Import
+  $('#export-config-btn')?.addEventListener('click', () => {
+    const exportData = { ...config };
+    delete exportData.api_key; delete exportData.openrouter_api_key; // Don't export secrets
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'glanceboard_config.json'; a.click();
+    toast('Config exported (API key excluded)', 'success');
+  });
+
+  $('#import-config-btn')?.addEventListener('click', () => $('#import-config-file').click());
+  $('#import-config-file')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = JSON.parse(reader.result);
+        // Preserve API key
+        const currentKey = config.api_key;
+        const currentOrKey = config.openrouter_api_key;
+        Object.assign(config, imported);
+        if (currentKey) config.api_key = currentKey;
+        if (currentOrKey) config.openrouter_api_key = currentOrKey;
+        saveConfig(); loadSettings(); renderCharacters(); loadDashboard();
+        toast('Config imported!', 'success');
+      } catch { toast('Invalid config file', 'error'); }
+    };
+    reader.readAsText(file);
+  });
+
+  // Setup Guide — display URL
+  function updateDisplayUrl() {
+    const urlInput = $('#guide-display-url');
+    if (urlInput) urlInput.value = config.display_url || getDisplayUrl();
+  }
+  updateDisplayUrl();
+
+  $('#guide-copy-url-btn')?.addEventListener('click', () => {
+    const url = $('#guide-display-url')?.value;
+    if (url) { navigator.clipboard.writeText(url).then(() => toast('Display URL copied!', 'success')).catch(() => toast('Copy failed', 'error')); }
+  });
+  $('#guide-open-display-btn')?.addEventListener('click', () => {
+    const url = $('#guide-display-url')?.value;
+    if (url) window.open(url, '_blank');
+  });
+  $('#guide-reset-url-btn')?.addEventListener('click', () => {
+    config.display_url = '';
+    saveConfig();
+    updateDisplayUrl();
+    toast('Display URL reset to default', 'info');
+  });
+
+  // Hash routing
+  function handleHash() {
+    const hash = location.hash.replace('#', '') || 'dashboard';
+    showPage(hash);
+  }
+  window.addEventListener('hashchange', handleHash);
+  if (location.hash) handleHash();
+});
+</script>
+</body>
+</html>

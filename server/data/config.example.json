@@ -1,0 +1,46 @@
+{
+    "api_provider": "google",
+    "openrouter_api_key": "",
+    "ical_url": "",
+    "timezone": "UTC",
+    "image_model": "google/gemini-3-pro-image",
+    "text_model": "gemini-flash-latest",
+    "characters_enabled": true,
+    "setup_complete": false,
+    "latitude": 0,
+    "longitude": 0,
+    "location_name": "",
+    "temp_unit": "celsius",
+    "layout_placements": {},
+    "widget_configs": {},
+    "capabilities": {
+        "calendar": true,
+        "daily_quote": true,
+        "sports": {
+            "enabled": false,
+            "team": ""
+        },
+        "weather": true,
+        "stocks": {
+            "enabled": false,
+            "symbol": ""
+        },
+        "news": true,
+        "this_day_in_history": false,
+        "countdown": false
+    },
+    "status": {},
+    "email_scan": {
+        "enabled": false,
+        "topics": [],
+        "scan_frequency": 2,
+        "days_back": 7
+    },
+    "generation_schedule": [
+        4,
+        10,
+        14,
+        18
+    ],
+    "aesthetic": "pixel"
+}
