@@ -40,7 +40,7 @@ Glanceboard runs a lightweight local server on your computer (or a Raspberry Pi)
 4. Generates an illustrated daily planner image from the above using Nano Banana
 5. Dithers the image for 6-colour e-ink and serves it to your display
 
-The display polls the server for new images — no cloud account needed.
+The display polls the server for new images. The server runs locally on your machine or can be deployed to the cloud, but requires a [Gemini API key](#api-key-setup) for image generation and intelligence features.
 
 ---
 
@@ -75,7 +75,7 @@ No soldering. No ribbon cables. Just one display and a server.
 - **Smart scheduling** — Auto-generates at your chosen times, only when your calendar or weather changes
 - **Custom prompts** — Edit the image generation prompt template
 - **Email digest** — Optional Gmail integration shows unread email summaries ([setup required](EMAIL_SETUP.md))
-- **Fully local** — Runs on your own machine, no cloud account required
+- **Self-hosted** — Runs on your own machine or deploy to the cloud; requires a [Gemini API key](#api-key-setup)
 
 ---
 
